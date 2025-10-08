@@ -608,7 +608,7 @@ const surveyQuestions: Question[] = [
   {
     id: "Q52",
     section: "Support System",
-    question: "How aligned are your parents' expectations with yours?",
+    question: "How aligned are your parents&apos; expectations with yours?",
     options: {
       A: "Strongly aligned",
       B: "Somewhat aligned",
@@ -864,7 +864,7 @@ export default function StudyAbroadSurvey() {
               </p>
               <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
                 <p className="text-sm">
-                  This may take a few moments. Please don't close this page.
+                  This may take a few moments. Please don&apos;t close this page.
                 </p>
               </div>
             </div>

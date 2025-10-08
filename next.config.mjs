@@ -14,6 +14,14 @@ const nextConfig = {
     },
     experimental: {
         serverComponentsExternalPackages: ['puppeteer']
+    },
+    webpack: (config, { isServer }) => {
+        if (isServer) {
+            config.externals.push({
+                'puppeteer': 'commonjs puppeteer'
+            });
+        }
+        return config;
     }
 };
 
