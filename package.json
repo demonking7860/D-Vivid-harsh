@@ -2,12 +2,17 @@
   "name": "d-vivid-consultant",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chrome",
+    "render-build": "pnpm install && pnpm build"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
