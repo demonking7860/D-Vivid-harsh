@@ -21,15 +21,36 @@ const nextConfig = {
     },
     experimental: {
         serverComponentsExternalPackages: ['puppeteer'],
-        // Optimize for Vercel serverless functions
-        outputFileTracingIncludes: {
-            '/api/**/*': ['./node_modules/**/*.wasm', './node_modules/**/*.node'],
+        // Optimize for Vercel serverless functions - exclude large files
+        outputFileTracingExcludes: {
+            '*': [
+                'node_modules/@swc/**/*',
+                'node_modules/@next/swc-*/**/*',
+                'node_modules/@types/**/*',
+                'node_modules/@dimforge/**/*', 
+                'node_modules/@unrs/**/*',
+                'node_modules/.pnpm/@swc/**/*',
+                'node_modules/.pnpm/@next+swc-*/**/*',
+                'node_modules/.pnpm/@types+**/*',
+                'node_modules/.pnpm/@dimforge+**/*',
+                'node_modules/.pnpm/@unrs+**/*',
+                '.next/cache/**/*',
+                'node_modules/**/test/**/*',
+                'node_modules/**/tests/**/*',
+                'node_modules/**/*.test.js',
+                'node_modules/**/*.spec.js',
+                'node_modules/**/*.d.ts.map',
+                'node_modules/**/*.js.map'
+            ]
         },
     },
     webpack: (config, { isServer }) => {
         if (isServer) {
             config.externals.push({
-                'puppeteer': 'commonjs puppeteer'
+                'puppeteer': 'commonjs puppeteer',
+                '@dimforge/rapier3d-compat': 'commonjs @dimforge/rapier3d-compat',
+                '@types/three': 'commonjs @types/three',
+                '@unrs/resolver': 'commonjs @unrs/resolver'
             });
         }
         
@@ -40,6 +61,23 @@ const nextConfig = {
             net: false,
             tls: false,
         };
+        
+        // Exclude large packages from bundle
+        if (isServer) {
+            const externals = [
+                '@next/swc-linux-x64-gnu',
+                '@next/swc-linux-x64-musl', 
+                '@swc/core-linux-x64-gnu',
+                '@swc/core-linux-x64-musl',
+                '@types/three',
+                '@dimforge/rapier3d-compat',
+                '@unrs/resolver',
+                '@unrs/resolver-binding-linux-x64-gnu',
+                '@unrs/resolver-binding-linux-x64-musl'
+            ];
+            
+            config.externals = [...config.externals, ...externals.map(pkg => ({ [pkg]: `commonjs ${pkg}` }))];
+        }
         
         return config;
     },

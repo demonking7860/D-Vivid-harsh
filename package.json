@@ -11,7 +11,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chrome",
+    "vercel-build": "next build",
+    "clean-deps": "find node_modules -name '*.map' -delete || true; find node_modules -name '*.d.ts' -not -path '*/next/*' -delete || true"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
