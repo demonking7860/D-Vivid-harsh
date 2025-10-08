@@ -11,8 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx puppeteer browsers install chrome",
-    "render-build": "pnpm install && pnpm build"
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",

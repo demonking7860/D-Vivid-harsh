@@ -12,16 +12,16 @@ const nextConfig = {
             },
             {
                 protocol: "https",
-                hostname: "*.onrender.com"
+                hostname: "*.vercel.app"
             }
         ],
-        // Optimize for Render
+        // Optimize for Vercel
         deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
         imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     },
     experimental: {
         serverComponentsExternalPackages: ['puppeteer'],
-        // Reduce memory usage
+        // Optimize for Vercel serverless functions
         outputFileTracingIncludes: {
             '/api/**/*': ['./node_modules/**/*.wasm', './node_modules/**/*.node'],
         },
@@ -33,7 +33,7 @@ const nextConfig = {
             });
         }
         
-        // Optimize bundle size
+        // Optimize bundle size for Vercel
         config.resolve.fallback = {
             ...config.resolve.fallback,
             fs: false,
@@ -43,7 +43,7 @@ const nextConfig = {
         
         return config;
     },
-    // Production optimizations
+    // Vercel optimizations
     poweredByHeader: false,
     generateEtags: false,
     compress: true,
