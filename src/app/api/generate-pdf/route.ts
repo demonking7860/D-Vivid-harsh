@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,17 +11,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing student name' }, { status: 400 })
     }
     
-    // Simple browser configuration
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ],
-      timeout: 30000
-    })
+    // Launch Chromium in a serverless-friendly way on Vercel, and use Puppeteer locally
+    const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+    let browser: any
+
+    if (isServerless) {
+      // Vercel / Lambda: use puppeteer-core + @sparticuz/chromium
+      const chromium = (await import('@sparticuz/chromium')).default
+      const puppeteerCore = (await import('puppeteer-core')).default
+
+  // Prefer chromium's bundled executable path for serverless; fall back to env if needed
+  const chromiumPath = await chromium.executablePath()
+  const executablePath = chromiumPath || process.env.PUPPETEER_EXECUTABLE_PATH
+
+      browser = await puppeteerCore.launch({
+        args: chromium.args,
+        executablePath,
+        headless: true,
+        timeout: 30000,
+      })
+    } else {
+      // Local dev: use full puppeteer (downloads Chrome on install)
+      const puppeteer = (await import('puppeteer')).default
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ],
+        timeout: 30000
+      })
+    }
     
     const page = await browser.newPage()
     
@@ -94,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'PDF generation failed - empty buffer' }, { status: 500 });
     }
     
-    await browser.close()
+  await browser.close()
     
     console.log('📄 Returning PDF response with size:', pdfBuffer.length)
     

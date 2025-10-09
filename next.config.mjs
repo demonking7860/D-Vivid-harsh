@@ -20,7 +20,7 @@ const nextConfig = {
         imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     },
     experimental: {
-        serverComponentsExternalPackages: ['puppeteer'],
+        serverComponentsExternalPackages: ['puppeteer', 'puppeteer-core', '@sparticuz/chromium'],
         // Optimize for Vercel serverless functions - exclude large files
         outputFileTracingExcludes: {
             '*': [
@@ -48,6 +48,8 @@ const nextConfig = {
         if (isServer) {
             config.externals.push({
                 'puppeteer': 'commonjs puppeteer',
+                'puppeteer-core': 'commonjs puppeteer-core',
+                '@sparticuz/chromium': 'commonjs @sparticuz/chromium',
                 '@dimforge/rapier3d-compat': 'commonjs @dimforge/rapier3d-compat',
                 '@types/three': 'commonjs @types/three',
                 '@unrs/resolver': 'commonjs @unrs/resolver'
