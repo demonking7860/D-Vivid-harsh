@@ -862,8 +862,8 @@ export default function StudyAbroadSurvey() {
               <p className="text-lg text-muted-foreground">
                 Our AI is processing your assessment and generating personalized insights...
               </p>
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-                <p className="text-sm">
+              <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
+                <p className="text-sm text-white">
                   This may take a few moments. Please don&apos;t close this page.
                 </p>
               </div>
@@ -947,8 +947,8 @@ export default function StudyAbroadSurvey() {
               <p className="text-lg text-muted-foreground">
                 Your personalized study abroad readiness report is ready.
               </p>
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-                <p className="text-sm">
+              <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
+                <p className="text-sm text-white">
                   <strong>Total Questions:</strong> {surveyQuestions.length}<br />
                   <strong>Completed At:</strong> {new Date().toLocaleString()}<br />
                   <strong>Email:</strong> {userInfo.email}

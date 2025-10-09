@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Container from "../global/container";
 import { useState, useEffect } from "react";
+import ConsultationCard from "./consultation-card";
 
 const expertise = [
     "Profile Evaluation",
@@ -104,12 +105,7 @@ const YouTubeVideoPlayer = () => {
 };
 
 const Hero = () => {
-    const scrollToContact = () => {
-        const contactSection = document.getElementById('contact');
-        if (contactSection) {
-            contactSection.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
+    const [openConsultation, setOpenConsultation] = useState(false);
 
     return (
         <div className="flex flex-col items-center text-center w-full max-w-5xl my-24 mx-auto z-40 relative">
@@ -146,7 +142,7 @@ const Hero = () => {
             </Container>
             <Container delay={0.2}>
                 <div className="flex items-center justify-center mt-8">
-                    <Button onClick={scrollToContact} size="lg" className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-500 hover:to-violet-600 text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105">
+                    <Button onClick={() => setOpenConsultation(true)} size="lg" className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-500 hover:to-violet-600 text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105">
                         Book a Free Consultation
                         <ArrowRightIcon className="w-5 h-5 ml-2" />
                     </Button>
@@ -161,6 +157,9 @@ const Hero = () => {
                     </div>
                 </div>
             </Container>
+
+            {/* Consultation Dialog */}
+            <ConsultationCard open={openConsultation} onOpenChange={setOpenConsultation} />
         </div>
     )
 };

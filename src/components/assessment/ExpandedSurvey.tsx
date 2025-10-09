@@ -803,8 +803,8 @@ export default function ExpandedSurvey() {
               <p className="text-lg text-muted-foreground">
                 Thank you for completing the Expanded Study Abroad Readiness Assessment. Your AI-powered analysis is ready!
               </p>
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-                <p className="text-sm">
+              <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
+                <p className="text-sm text-white">
                   <strong>Total Questions:</strong> {expandedQuestions.length}<br />
                   <strong>Completed At:</strong> {new Date().toLocaleString()}<br />
                   <strong>Email:</strong> {userInfo.email}<br />

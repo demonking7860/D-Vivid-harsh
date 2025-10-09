@@ -46,7 +46,9 @@ const Footer = () => {
                                     {section.links.map((link, linkIndex) => (
                                         <li key={linkIndex}>
                                             <Link 
-                                                href={link.href} 
+                                                href={link.href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                                             >
                                                 {link.name}
@@ -67,9 +69,30 @@ const Footer = () => {
                             <div>
                                 <h5 className="text-base font-medium mb-4 text-foreground">Ahmedabad Offices:</h5>
                                 <div className="space-y-4 text-sm text-muted-foreground">
-                                    <p>B-3, 2nd Floor, Safal Profitaire, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015</p>
-                                    <p>401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350</p>
-                                    <p>501, 5th Floor, Rajdeep Dreams, Rambaug Kankariya Rd, beside IDBI Bank, Prankunj Society, Pushpkunj, Maninagar, Ahmedabad, Gujarat 380008</p>
+                                    <a 
+                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy/@23.009787,72.5064509,15z/data=!4m2!3m1!1s0x0:0x23f80d41827bdd5a?sa=X&ved=2ahUKEwjPrK21wIKEAxUcTmwGHZ_BBAkQ_BJ6BAgQEAA&hl=en-IN"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                    >
+                                        B-3, 2nd Floor, Safal Profitaire, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015
+                                    </a>
+                                    <a 
+                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy/@23.0500363,72.672839,15z/data=!4m6!3m5!1s0x395e873967e2af39:0xe73720094b49a4e8!8m2!3d23.0500363!4d72.672839!16s%2Fg%2F11l2cpybfq?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                    >
+                                        401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350
+                                    </a>
+                                    <a 
+                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy+Maninagar+Ahmedabad/@23.0020052,72.5992021,15z/data=!4m6!3m5!1s0x395e8555d18bfad5:0xbaf30bccdd4eeaa0!8m2!3d23.0020052!4d72.5992021!16s%2Fg%2F11vc2ywcbv?hl=en-IN&entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                    >
+                                        501, 5th Floor, Rajdeep Dreams, Rambaug Kankariya Rd, beside IDBI Bank, Prankunj Society, Pushpkunj, Maninagar, Ahmedabad, Gujarat 380008
+                                    </a>
                                 </div>
                             </div>
 
@@ -77,8 +100,49 @@ const Footer = () => {
                             <div>
                                 <h5 className="text-base font-medium mb-4 text-foreground">Surat Offices:</h5>
                                 <div className="space-y-4 text-sm text-muted-foreground">
-                                    <p>531, Laxmi Enclave -2, opp. Gajera International School, Katargam</p>
-                                    <p>452, Opera Business Hub, Lajamni Chowk, Maruti Dham Society, Mota Varachha, Surat</p>
+                                    <a 
+                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+Surat+%7C+Study+abroad+consultant+%7C+Katargam/@21.2322842,72.834286,17z/data=!4m6!3m5!1s0x3be04f8f66a71d81:0x2921c494c87dce14!8m2!3d21.2322792!4d72.8368609!16s%2Fg%2F11vywsvvrr?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                    >
+                                        531, Laxmi Enclave -2, opp. Gajera International School, Katargam
+                                    </a>
+                                    <a 
+                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+Mota+Varachha/@21.2379804,72.8888158,17z/data=!4m6!3m5!1s0x3be04fa3a01e4843:0xa8e298543970846a!8m2!3d21.2379804!4d72.8888158!16s%2Fg%2F11pysdntj0?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                    >
+                                        452, Opera Business Hub, Lajamni Chowk, Maruti Dham Society, Mota Varachha, Surat
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Contact Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                            <div>
+                                <h5 className="text-base font-medium mb-4 text-foreground">Get In Touch:</h5>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium text-foreground">Email:</span>
+                                        <a 
+                                            href="mailto:info@dvividconsultant.com" 
+                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            info@dvividconsultant.com
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium text-foreground">Phone:</span>
+                                        <a 
+                                            href="tel:+917575020920" 
+                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            +91 7575020920
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -92,16 +156,16 @@ const Footer = () => {
                             </p>
                             <div className="flex items-center gap-1">
                                 <span className="text-sm text-muted-foreground mr-4">Follow Us On:</span>
-                                <Link href="#" className="p-2 hover:bg-accent rounded-md transition-colors">
+                                <Link href="https://www.facebook.com/dvividconsultant?mibextid=LQQJ4d" target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-accent rounded-md transition-colors">
                                     <Facebook className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                                 </Link>
-                                <Link href="#" className="p-2 hover:bg-accent rounded-md transition-colors">
+                                <Link href="https://www.instagram.com/dvividconsultant/" target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-accent rounded-md transition-colors">
                                     <Icons.instagram className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                                 </Link>
-                                <Link href="#" className="p-2 hover:bg-accent rounded-md transition-colors">
+                                <Link href="https://www.linkedin.com/company/dvividconsultant/" target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-accent rounded-md transition-colors">
                                     <Linkedin className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                                 </Link>
-                                <Link href="#" className="p-2 hover:bg-accent rounded-md transition-colors">
+                                <Link href="https://www.youtube.com/@abroadgnangurudvivid" target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-accent rounded-md transition-colors">
                                     <Youtube className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                                 </Link>
                             </div>

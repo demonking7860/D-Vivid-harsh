@@ -483,8 +483,8 @@ export default function ConciseSurvey() {
               <p className="text-lg text-muted-foreground">
                 Our AI is evaluating your assessment and preparing your personalized study abroad readiness report...
               </p>
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-                <p className="text-sm">
+              <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
+                <p className="text-sm text-white">
                   <strong>Assessment Type:</strong> Focused Study Abroad Readiness Assessment<br />
                   <strong>Questions Completed:</strong> {conciseQuestions.length}<br />
                   <strong>Processing:</strong> AI Analysis in Progress
@@ -617,8 +617,8 @@ export default function ConciseSurvey() {
               <p className="text-lg text-muted-foreground">
                 Thank you for completing the Concise Study Abroad Readiness Assessment. Your responses have been saved.
               </p>
-              <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-                <p className="text-sm">
+              <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
+                <p className="text-sm text-white">
                   <strong>Total Questions:</strong> {conciseQuestions.length}<br />
                   <strong>Completed At:</strong> {new Date().toLocaleString()}<br />
                   <strong>Email:</strong> {userInfo.email}<br />
