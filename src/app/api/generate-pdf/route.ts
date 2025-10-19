@@ -153,6 +153,22 @@ function generateHTMLContent(results: any): string {
   const recommendations = results.Recommendations || 'No recommendations provided';
   const countryFit = results['Country Fit (Top 3)'] || [];
 
+  // Helper to format text into bullet points
+  const formatToBulletPoints = (text: string) => {
+    if (!text || text === 'No strengths identified' || text === 'No gaps identified' || text === 'No recommendations provided') {
+      return `<li class="bullet-item">Information not available</li>`;
+    }
+    
+    // Split by common delimiters and create bullet points
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const points = sentences.length > 1 ? sentences : text.split(/[,;]+/).filter(s => s.trim().length > 0);
+    
+    return points.map(point => {
+      const cleanPoint = point.trim().replace(/^\d+\.?\s*/, ''); // Remove leading numbers
+      return `<li class="bullet-item">${cleanPoint}</li>`;
+    }).join('');
+  };
+
   // Helper to generate compact score card
   const generateScoreCard = (label: string, score: number, weight: string) => {
     const percentage = Math.round(score);
@@ -241,27 +257,27 @@ function generateHTMLContent(results: any): string {
     }).join('');
   };
 
-  // Helper to generate compact country card
+  // Helper to generate compact country card with country map SVG
   const generateCountryCard = (country: string, index: number) => {
-    const countryInfo = {
-      'Singapore': { flag: '🇸🇬' },
-      'Ireland': { flag: '🇮🇪' },
-      'Netherlands': { flag: '🇳🇱' },
-      'Canada': { flag: '🇨🇦' },
-      'Australia': { flag: '🇦🇺' },
-      'United Kingdom': { flag: '🇬🇧' },
-      'Germany': { flag: '🇩🇪' },
-      'United States': { flag: '🇺🇸' },
-      'India': { flag: '🇮🇳' },
-      'United Arab Emirates': { flag: '🇦🇪' }
+    const countryMaps = {
+      'Singapore': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#e74c3c" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SG</text></svg>`,
+      'Ireland': `<svg viewBox="0 0 100 60" class="country-map"><rect width="33" height="60" fill="#009639"/><rect x="33" width="34" height="60" fill="white"/><rect x="67" width="33" height="60" fill="#ff7900"/><text x="50" y="35" text-anchor="middle" fill="black" font-size="10" font-weight="bold">IE</text></svg>`,
+      'Netherlands': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="20" fill="#c8102e"/><rect y="20" width="100" height="20" fill="white"/><rect y="40" width="100" height="20" fill="#003da5"/><text x="50" y="35" text-anchor="middle" fill="black" font-size="10" font-weight="bold">NL</text></svg>`,
+      'Canada': `<svg viewBox="0 0 100 60" class="country-map"><rect width="25" height="60" fill="#ff0000"/><rect x="25" width="50" height="60" fill="white"/><rect x="75" width="25" height="60" fill="#ff0000"/><text x="50" y="35" text-anchor="middle" fill="red" font-size="10" font-weight="bold">🍁</text></svg>`,
+      'Australia': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#012169"/><rect width="50" height="30" fill="#012169"/><text x="70" y="45" text-anchor="middle" fill="white" font-size="10" font-weight="bold">AU</text></svg>`,
+      'United Kingdom': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#012169"/><path d="M0,0 L100,60 M100,0 L0,60" stroke="white" stroke-width="6"/><path d="M50,0 L50,60 M0,30 L100,30" stroke="white" stroke-width="10"/><path d="M0,0 L100,60 M100,0 L0,60" stroke="#c8102e" stroke-width="4"/><path d="M50,0 L50,60 M0,30 L100,30" stroke="#c8102e" stroke-width="6"/></svg>`,
+      'Germany': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="20" fill="#000000"/><rect y="20" width="100" height="20" fill="#dd0000"/><rect y="40" width="100" height="20" fill="#ffce00"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">DE</text></svg>`,
+      'United States': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#b22234"/><rect y="0" width="100" height="5" fill="white"/><rect y="10" width="100" height="5" fill="white"/><rect y="20" width="100" height="5" fill="white"/><rect y="30" width="100" height="5" fill="white"/><rect y="40" width="100" height="5" fill="white"/><rect y="50" width="100" height="5" fill="white"/><rect width="40" height="35" fill="#3c3b6e"/><text x="70" y="45" text-anchor="middle" fill="white" font-size="10" font-weight="bold">US</text></svg>`,
+      'India': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="20" fill="#ff9933"/><rect y="20" width="100" height="20" fill="white"/><rect y="40" width="100" height="20" fill="#138808"/><circle cx="50" cy="30" r="8" fill="none" stroke="#000080" stroke-width="1"/><text x="50" y="35" text-anchor="middle" fill="#000080" font-size="8" font-weight="bold">☸</text></svg>`,
+      'United Arab Emirates': `<svg viewBox="0 0 100 60" class="country-map"><rect width="25" height="60" fill="#ce1126"/><rect x="25" width="75" height="20" fill="#009639"/><rect x="25" y="20" width="75" height="20" fill="white"/><rect x="25" y="40" width="75" height="20" fill="#000000"/><text x="60" y="35" text-anchor="middle" fill="red" font-size="10" font-weight="bold">AE</text></svg>`
     };
     
-    const info = (countryInfo as any)[country] || { flag: '🌍' };
+    const countryMap = (countryMaps as any)[country] || `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">🌍</text></svg>`;
     
     return `
       <div class="country-card">
         <div class="country-rank">#${index + 1}</div>
-        <div class="country-flag">${info.flag}</div>
+        <div class="country-flag">${countryMap}</div>
         <div class="country-name">${country}</div>
         <div class="country-score">${Math.round(100 - (index * 15))}% Match</div>
       </div>
@@ -322,15 +338,47 @@ function generateHTMLContent(results: any): string {
                 padding: 0;
             }
             
+            .page-break {
+                page-break-before: always;
+                break-before: page;
+            }
+            
+            .country-page {
+                min-height: calc(297mm - 160px);
+                padding: 25px 30px 120px 30px;
+                background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+            }
+            
             .header {
-                background: linear-gradient(135deg, #003B8C 0%, #5BE49B 100%);
+                background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%);
                 color: white;
-                padding: 12px 20px;
+                padding: 20px 30px;
                 text-align: center;
                 position: relative;
                 overflow: hidden;
-                height: 90px;
-                min-height: 90px;
+                height: 110px;
+                min-height: 110px;
+                box-shadow: 0 4px 15px rgba(0, 59, 140, 0.3);
+            }
+            
+            .header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 200%;
+                height: 100%;
+                background: linear-gradient(45deg, 
+                    transparent 30%, 
+                    rgba(255,255,255,0.1) 50%, 
+                    transparent 70%);
+                animation: headerShine 4s ease-in-out infinite;
+            }
+            
+            @keyframes headerShine {
+                0% { left: -100%; }
+                50% { left: 100%; }
+                100% { left: -100%; }
             }
             
             .header-content {
@@ -347,14 +395,17 @@ function generateHTMLContent(results: any): string {
             }
             
             .logo {
-                width: 50px;
-                height: 50px;
-                background: white;
+                width: 60px;
+                height: 60px;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                border: 3px solid rgba(255,255,255,0.3);
+                position: relative;
+                z-index: 2;
             }
             
             .logo img {
@@ -364,19 +415,25 @@ function generateHTMLContent(results: any): string {
             
             .company-info h1 {
                 font-family: 'Montserrat', sans-serif;
-                font-size: 1.8em;
-                font-weight: 800;
+                font-size: 2.0em;
+                font-weight: 900;
                 margin: 0;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
                 line-height: 1.1;
+                position: relative;
+                z-index: 2;
+                letter-spacing: 0.5px;
             }
             
             .company-info p {
-                font-size: 0.95em;
+                font-size: 1.0em;
                 opacity: 0.95;
-                margin: 0;
-                font-weight: 500;
+                margin: 4px 0 0 0;
+                font-weight: 600;
                 line-height: 1.2;
+                position: relative;
+                z-index: 2;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
             }
             
             .report-title {
@@ -385,18 +442,26 @@ function generateHTMLContent(results: any): string {
             }
             
             .report-title h2 {
-                font-size: 1.3em;
-                font-weight: 700;
+                font-size: 1.5em;
+                font-weight: 800;
                 margin: 0;
-                line-height: 1.1;
-                padding: 0 5px;
+                line-height: 1.2;
+                padding: 0 10px;
+                text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+                position: relative;
+                z-index: 2;
+                letter-spacing: 0.5px;
             }
             
             .report-title p {
-                font-size: 0.85em;
-                opacity: 0.9;
-                margin: 2px 0 0 0;
-                padding: 0 5px;
+                font-size: 0.9em;
+                opacity: 0.95;
+                margin: 4px 0 0 0;
+                padding: 0 10px;
+                position: relative;
+                z-index: 2;
+                font-weight: 500;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
             }
             
             .footer {
@@ -408,11 +473,29 @@ function generateHTMLContent(results: any): string {
                 color: white;
                 padding: 8px 20px;
                 text-align: center;
-                font-size: 1.0em;
-                height: 30px;
+                font-size: 0.9em;
+                height: 50px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+            }
+            
+            .disclaimer {
+                position: absolute;
+                bottom: 50px;
+                left: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #fff9e6, #fff3cd);
+                border: 2px solid #ffeaa7;
+                border-left: 5px solid #fdcb6e;
+                padding: 15px 25px;
+                font-size: 0.9em;
+                line-height: 1.5;
+                color: #6c5ce7;
+                font-weight: 600;
+                text-align: center;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             }
             
             .footer-logo {
@@ -432,104 +515,222 @@ function generateHTMLContent(results: any): string {
             }
             
             .content {
-                padding: 20px;
-                min-height: calc(297mm - 110px);
+                padding: 25px 30px;
+                min-height: calc(297mm - 170px);
                 display: flex;
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
+                background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+                padding-bottom: 50px;
             }
             
             .student-info {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 15px;
-                margin-bottom: 15px;
+                gap: 20px;
+                margin-bottom: 25px;
+                padding: 20px;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                border-radius: 12px;
+                border: 2px solid #e9ecef;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             }
             
             .info-item {
-                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-                padding: 12px;
-                border-radius: 8px;
-                border-left: 4px solid #5BE49B;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
+                padding: 18px;
+                border-radius: 10px;
+                border-left: 5px solid #5BE49B;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                transition: transform 0.2s ease;
+            }
+            
+            .info-item:hover {
+                transform: translateY(-2px);
             }
             
             .info-label {
                 font-weight: 700;
-                color: #666;
-                margin-bottom: 4px;
-                font-size: 1.0em;
+                color: #495057;
+                margin-bottom: 8px;
+                font-size: 0.9em;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 1px;
+                display: flex;
+                align-items: center;
+            }
+            
+            .info-label::before {
+                content: '●';
+                color: #5BE49B;
+                margin-right: 8px;
+                font-size: 1.2em;
             }
             
             .info-value {
-                font-size: 1.3em;
+                font-size: 1.4em;
                 font-weight: 800;
                 color: #003B8C;
+                word-break: break-word;
             }
             
             .overall-score {
                 text-align: center;
-                margin: 15px 0;
-                padding: 20px;
-                background: linear-gradient(45deg, #003B8C, #5BE49B);
+                margin: 25px 0;
+                padding: 30px;
+                background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%);
                 color: white;
-                border-radius: 10px;
+                border-radius: 16px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 8px 25px rgba(0, 59, 140, 0.3);
+            }
+            
+            .overall-score::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.1) 10px,
+                    rgba(255,255,255,0.1) 20px
+                );
+                animation: shimmer 3s ease-in-out infinite;
+            }
+            
+            @keyframes shimmer {
+                0% { transform: translateX(-100%) translateY(-100%); }
+                50% { transform: translateX(0%) translateY(0%); }
+                100% { transform: translateX(100%) translateY(100%); }
             }
             
             .overall-score h3 {
-                font-size: 3.0em;
-                margin-bottom: 8px;
-                font-weight: 800;
+                font-size: 4.5em;
+                margin-bottom: 12px;
+                font-weight: 900;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                position: relative;
+                z-index: 1;
             }
             
             .overall-score p {
-                font-size: 1.4em;
+                font-size: 1.6em;
                 opacity: 0.95;
-                font-weight: 600;
+                font-weight: 700;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                position: relative;
+                z-index: 1;
+                margin-top: 8px;
             }
             
             .scores-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 12px;
-                margin: 15px 0;
+                gap: 18px;
+                margin: 25px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #f8f9fa, #ffffff);
+                border-radius: 16px;
+                border: 2px solid #e9ecef;
             }
             
             .score-card {
-                background: #ffffff;
-                padding: 15px;
-                border-radius: 10px;
-                border: 2px solid #e0e0e0;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 20px;
+                border-radius: 12px;
+                border: 2px solid #e9ecef;
                 text-align: center;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .score-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B);
+            }
+            
+            .score-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
             }
             
             .score-card h4 {
-                font-size: 1.2em;
+                font-size: 1.1em;
                 color: #003B8C;
                 font-weight: 700;
-                margin-bottom: 8px;
+                margin-bottom: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
             
             .score-value {
-                font-size: 2.4em;
-                font-weight: 800;
+                font-size: 2.8em;
+                font-weight: 900;
                 color: #003B8C;
-                margin-bottom: 5px;
+                margin-bottom: 10px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             }
             
             .score-bar {
-                height: 8px;
-                background: #e9ecef;
-                border-radius: 4px;
+                height: 12px;
+                background: linear-gradient(90deg, #e9ecef, #f8f9fa);
+                border-radius: 6px;
                 overflow: hidden;
-                margin-bottom: 5px;
+                margin-bottom: 8px;
+                position: relative;
+            }
+            
+            .score-bar::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(45deg, 
+                    rgba(255,255,255,0.2) 25%, 
+                    transparent 25%, 
+                    transparent 50%, 
+                    rgba(255,255,255,0.2) 50%, 
+                    rgba(255,255,255,0.2) 75%, 
+                    transparent 75%);
+                background-size: 8px 8px;
             }
             
             .score-fill {
                 height: 100%;
-                border-radius: 4px;
-                transition: width 0.3s ease;
+                border-radius: 6px;
+                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .score-fill::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+                animation: shine 2s infinite;
+            }
+            
+            @keyframes shine {
+                0% { left: -100%; }
+                100% { left: 100%; }
             }
             
             .score-fill.excellent { background: linear-gradient(90deg, #22C55E, #16A34A); }
@@ -538,39 +739,132 @@ function generateHTMLContent(results: any): string {
             .score-fill.weak { background: linear-gradient(90deg, #EF4444, #DC2626); }
             
             .analysis-section {
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #003B8C;
-                margin: 10px 0;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 25px;
+                border-radius: 12px;
+                border: 2px solid #e9ecef;
+                border-left: 6px solid #003B8C;
+                margin: 20px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .analysis-section::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 3px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B, #003B8C);
             }
             
             .analysis-section h4 {
-                font-size: 1.3em;
+                font-size: 1.4em;
                 color: #003B8C;
-                margin-bottom: 8px;
-                font-weight: 700;
+                margin-bottom: 15px;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .analysis-section h4::after {
+                content: '';
+                flex: 1;
+                height: 2px;
+                background: linear-gradient(90deg, #003B8C, transparent);
+                margin-left: 15px;
             }
             
             .analysis-section p {
-                line-height: 1.6;
-                color: #555;
+                line-height: 1.8;
+                color: #495057;
                 font-size: 1.1em;
+                text-align: justify;
+                text-indent: 20px;
+                margin-bottom: 0;
+            }
+            
+            .bullet-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .bullet-item {
+                position: relative;
+                padding-left: 25px;
+                margin-bottom: 12px;
+                line-height: 1.6;
+                color: #495057;
+                font-size: 1.05em;
+            }
+            
+            .bullet-item::before {
+                content: '●';
+                position: absolute;
+                left: 0;
+                top: 0;
+                color: #5BE49B;
+                font-size: 1.2em;
+                font-weight: bold;
+            }
+            
+            .strengths .bullet-item::before {
+                content: '✓';
+                color: #22c55e;
+                font-weight: 900;
+            }
+            
+            .gaps .bullet-item::before {
+                content: '⚠';
+                color: #f59e0b;
+            }
+            
+            .recommendations .bullet-item::before {
+                content: '→';
+                color: #3b82f6;
+                font-weight: bold;
             }
             
             .country-fit {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 12px;
-                margin: 15px 0;
+                gap: 18px;
+                margin: 25px 0 50px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #f8f9fa, #ffffff);
+                border-radius: 16px;
+                border: 2px solid #e9ecef;
             }
             
             .country-card {
-                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-                padding: 15px;
-                border-radius: 10px;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 20px;
+                border-radius: 12px;
                 text-align: center;
-                border: 2px solid #e0e0e0;
+                border: 2px solid #e9ecef;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                position: relative;
+                overflow: hidden;
+                transition: transform 0.3s ease;
+            }
+            
+            .country-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B);
+            }
+            
+            .country-card:hover {
+                transform: translateY(-2px);
             }
             
             .country-rank {
@@ -588,8 +882,18 @@ function generateHTMLContent(results: any): string {
             }
             
             .country-flag {
-                font-size: 1.8em;
-                margin-bottom: 5px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .country-map {
+                width: 50px;
+                height: 30px;
+                border-radius: 4px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                border: 1px solid #dee2e6;
             }
             
             .country-name {
@@ -609,11 +913,24 @@ function generateHTMLContent(results: any): string {
             }
             
             .charts-section {
-                margin: 20px 0;
-                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-                padding: 20px;
-                border-radius: 12px;
-                border: 2px solid #003B8C;
+                margin: 30px 0;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 30px;
+                border-radius: 16px;
+                border: 3px solid #003B8C;
+                box-shadow: 0 8px 25px rgba(0, 59, 140, 0.15);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .charts-section::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 5px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B, #003B8C);
             }
             
             .charts-grid {
@@ -624,11 +941,23 @@ function generateHTMLContent(results: any): string {
             }
             
             .chart-container {
-                background: white;
-                padding: 15px;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 20px;
+                border-radius: 12px;
+                border: 2px solid #e9ecef;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .chart-container::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B);
             }
             
             .chart-container.full-width {
@@ -637,10 +966,25 @@ function generateHTMLContent(results: any): string {
             
             .chart-container h4 {
                 color: #003B8C;
-                font-size: 1.2em;
-                font-weight: 700;
-                margin-bottom: 15px;
+                font-size: 1.3em;
+                font-weight: 800;
+                margin-bottom: 20px;
                 text-align: center;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                position: relative;
+                padding-bottom: 10px;
+            }
+            
+            .chart-container h4::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 50px;
+                height: 2px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B);
             }
             
             .radar-chart {
@@ -653,10 +997,16 @@ function generateHTMLContent(results: any): string {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 8px 12px;
-                background: linear-gradient(90deg, #f8f9fa, #e9ecef);
-                border-radius: 6px;
-                border-left: 4px solid #5BE49B;
+                padding: 12px 16px;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
+                border-radius: 8px;
+                border-left: 5px solid #5BE49B;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                transition: transform 0.2s ease;
+            }
+            
+            .radar-item:hover {
+                transform: translateX(5px);
             }
             
             .radar-label {
@@ -692,18 +1042,55 @@ function generateHTMLContent(results: any): string {
             
             .trend-progress {
                 flex: 1;
-                height: 20px;
-                background: #e9ecef;
-                border-radius: 10px;
+                height: 24px;
+                background: linear-gradient(90deg, #e9ecef, #f8f9fa);
+                border-radius: 12px;
                 overflow: hidden;
                 position: relative;
+                border: 1px solid #dee2e6;
+            }
+            
+            .trend-progress::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 4px,
+                    rgba(255,255,255,0.3) 4px,
+                    rgba(255,255,255,0.3) 8px
+                );
+                z-index: 1;
             }
             
             .trend-fill {
                 height: 100%;
-                border-radius: 10px;
-                background: linear-gradient(90deg, #003B8C, #5BE49B);
-                transition: width 0.3s ease;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #003B8C, #1e40af, #5BE49B);
+                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                z-index: 2;
+            }
+            
+            .trend-fill::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+                animation: progressShine 2.5s infinite;
+                z-index: 3;
+            }
+            
+            @keyframes progressShine {
+                0% { left: -100%; }
+                100% { left: 100%; }
             }
             
             .trend-value {
@@ -721,13 +1108,15 @@ function generateHTMLContent(results: any): string {
             }
             
             .country-matrix-item {
-                background: linear-gradient(135deg, #ffffff, #f8f9fa);
-                padding: 15px;
-                border-radius: 8px;
-                border: 2px solid #e0e0e0;
+                background: linear-gradient(135deg, #ffffff, #f8fafb);
+                padding: 20px;
+                border-radius: 12px;
+                border: 2px solid #e9ecef;
                 text-align: center;
                 position: relative;
                 overflow: hidden;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
             }
             
             .country-matrix-item::before {
@@ -736,8 +1125,13 @@ function generateHTMLContent(results: any): string {
                 top: 0;
                 left: 0;
                 right: 0;
-                height: 4px;
+                height: 5px;
                 background: linear-gradient(90deg, #003B8C, #5BE49B);
+            }
+            
+            .country-matrix-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
             }
             
             .country-matrix-rank {
@@ -779,9 +1173,43 @@ function generateHTMLContent(results: any): string {
             }
             
             @media print {
-                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .page { box-shadow: none; border: none; }
-                .header, .footer { background-color: #003B8C !important; }
+                body { 
+                    -webkit-print-color-adjust: exact; 
+                    print-color-adjust: exact;
+                    margin: 0;
+                    padding: 0;
+                }
+                .page { 
+                    box-shadow: none; 
+                    border: none;
+                    margin: 0;
+                    page-break-after: always;
+                }
+                .page:last-child {
+                    page-break-after: auto;
+                }
+                .page-break {
+                    page-break-before: always;
+                    break-before: page;
+                }
+                .header, .footer, .disclaimer { 
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .header {
+                    background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%) !important;
+                }
+                .footer {
+                    background: linear-gradient(135deg, #003B8C 0%, #5BE49B 100%) !important;
+                }
+                .disclaimer {
+                    background: linear-gradient(135deg, #fff9e6, #fff3cd) !important;
+                    border-color: #fdcb6e !important;
+                }
+                * {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
             }
         </style>
     </head>
@@ -830,9 +1258,46 @@ function generateHTMLContent(results: any): string {
                     ${scores['Practical Readiness'] ? generateScoreCard('Practical Readiness', scores['Practical Readiness'], '10%') : ''}
                     ${scores['Support System'] ? generateScoreCard('Support System', scores['Support System'], '10%') : ''}
                 </div>
-                
+
+            </div>
+            
+            <div class="footer">
+                <div style="display: flex; align-items: center;">
+                    <div class="footer-logo">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi/+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                    </div>
+                    <span>D-Vivid Consultant - Strategic Counselling Circle</span>
+                </div>
+                <div>Report Generated: ${currentDate}</div>
+            </div>
+        </div>
+        
+        <!-- Page 2: Country Analysis -->
+        ${countryFit.length > 0 ? `
+        <div class="page page-break">
+            <div class="header">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                        </div>
+                        <div class="company-info">
+                            <h1>D-Vivid Consultant</h1>
+                            <p>Strategic Counselling Circle</p>
+                        </div>
+                    </div>
+                    <div class="report-title">
+                        <h2>Country Analysis & Recommendations</h2>
+                        <p>Personalized Study Destinations</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="country-page">
+                <!-- 📊 DETAILED READINESS ANALYSIS -->
                 <div class="charts-section">
-                    <h3 style="text-align: center; color: #003B8C; margin: 20px 0; font-size: 1.5em; font-weight: 700;">📊 Detailed Readiness Analysis</h3>
+                    <h3 style="text-align: center; color: #003B8C; margin: 25px 0; font-size: 1.8em; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; position: relative; padding-bottom: 15px;">📊 Detailed Readiness Analysis</h3>
+                    <div style="width: 100px; height: 4px; background: linear-gradient(90deg, #003B8C, #5BE49B); margin: 0 auto 25px auto; border-radius: 2px;"></div>
                     <div class="charts-grid">
                         <div class="chart-container">
                             <h4>🎯 Readiness Radar Chart</h4>
@@ -847,47 +1312,63 @@ function generateHTMLContent(results: any): string {
                             </div>
                         </div>
                     </div>
-                    <div class="chart-container full-width">
-                        <h4>🌍 Country Readiness Matrix</h4>
-                        <div class="country-matrix">
-                            ${generateCountryMatrix(countryFit)}
-                        </div>
+                </div>
+                
+                <!-- 💪 KEY STRENGTHS -->
+                <div class="analysis-section strengths">
+                    <h4>💪 Key Strengths</h4>
+                    <ul class="bullet-list">
+                        ${formatToBulletPoints(strengths)}
+                    </ul>
+                </div>
+                
+                <!-- ⚠️ AREAS FOR DEVELOPMENT -->
+                <div class="analysis-section gaps">
+                    <h4>⚠️ Areas for Development</h4>
+                    <ul class="bullet-list">
+                        ${formatToBulletPoints(gaps)}
+                    </ul>
+                </div>
+                
+                <!-- 🎯 STRATEGIC RECOMMENDATIONS -->
+                <div class="analysis-section recommendations">
+                    <h4>🎯 Strategic Recommendations</h4>
+                    <ul class="bullet-list">
+                        ${formatToBulletPoints(recommendations)}
+                    </ul>
+                </div>
+                
+                <!-- 🌍 COUNTRY READINESS MATRIX -->
+                <div class="chart-container full-width" style="margin: 40px 0;">
+                    <h4>🌍 Country Readiness Matrix</h4>
+                    <div class="country-matrix">
+                        ${generateCountryMatrix(countryFit)}
                     </div>
                 </div>
                 
-                <div class="analysis-section">
-                    <h4>💪 Key Strengths</h4>
-                    <p>${strengths}</p>
-                </div>
-                
-                <div class="analysis-section">
-                    <h4>⚠️ Areas for Development</h4>
-                    <p>${gaps}</p>
-                </div>
-                
-                <div class="analysis-section">
-                    <h4>🎯 Strategic Recommendations</h4>
-                    <p>${recommendations}</p>
-                </div>
-                
-                ${countryFit.length > 0 ? `
+                <!-- 🎓 RECOMMENDED STUDY DESTINATIONS -->
                 <div class="country-fit">
-                    <h4 style="grid-column: 1/-1; text-align: center; color: #003B8C; margin-bottom: 10px;">🌍 Recommended Study Destinations</h4>
+                    <h4 style="grid-column: 1/-1; text-align: center; color: #003B8C; margin-bottom: 15px; font-size: 1.4em; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; position: relative; padding-bottom: 10px;">� Recommended Study Destinations</h4>
+                    <div style="grid-column: 1/-1; width: 80px; height: 3px; background: linear-gradient(90deg, #003B8C, #5BE49B); margin: 0 auto 20px auto; border-radius: 2px;"></div>
                     ${countryFit.map((country: string, index: number) => generateCountryCard(country, index)).join('')}
                 </div>
-                ` : ''}
+            </div>
+            
+            <div class="disclaimer">
+                <strong>⚠️ DISCLAIMER:</strong> Results are based on your inputs and benchmark data. The analysis is intended as guidance and should be interpreted as advisory, not definitive or prescriptive. This assessment provides general recommendations and should be used in conjunction with professional counseling for study abroad planning.
             </div>
             
             <div class="footer">
                 <div style="display: flex; align-items: center;">
-                           <div class="footer-logo">
-                               <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
-                           </div>
+                    <div class="footer-logo">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi/+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi/+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                    </div>
                     <span>D-Vivid Consultant - Strategic Counselling Circle</span>
                 </div>
                 <div>Report Generated: ${currentDate}</div>
             </div>
         </div>
+        ` : ''}
     </body>
     </html>
   `;
