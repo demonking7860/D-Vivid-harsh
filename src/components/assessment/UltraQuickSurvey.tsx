@@ -218,7 +218,11 @@ export default function UltraQuickSurvey() {
       if (sectionScores[section]) {
         sectionScores[section].total += 1;
         
-        // Score based on answer choice (A=4, B=3, C=2, D=1)
+        // Score based on answer choice - More granular 4-point scale
+        // A = Strongly Agree/Excellent (4 points)
+        // B = Agree/Good (3 points) 
+        // C = Neutral/Average (2 points)
+        // D = Disagree/Poor (1 point)
         const answerScore = response.answer === 'A' ? 4 : response.answer === 'B' ? 3 : response.answer === 'C' ? 2 : 1;
         sectionScores[section].correct += answerScore;
       }

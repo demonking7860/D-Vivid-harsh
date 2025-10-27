@@ -144,21 +144,34 @@ function generateHTMLContent(results: any): string {
     throw new Error('Scores data is required');
   }
   
-  // Extract individual scores
-  const scores = {
-    'Financial Planning': scoresRaw['Financial Planning'] ?? 0,
-    'Academic Readiness': scoresRaw['Academic Readiness'] ?? 0,
-    'Career Alignment': scoresRaw['Career Alignment'] ?? 0,
-    'Personal & Cultural': scoresRaw['Personal & Cultural'] ?? 0,
-    'Practical Readiness': scoresRaw['Practical Readiness'] ?? 0,
-    'Support System': scoresRaw['Support System'] ?? 0
+  // Helper function to parse scores and ensure they are numbers
+  const parseScore = (score: any): number => {
+    if (typeof score === 'number') return Math.round(score);
+    if (typeof score === 'string') {
+      // Remove any % signs and non-numeric characters, then convert to number
+      const cleaned = score.replace(/[^\d.]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : Math.round(num);
+    }
+    return 0;
   };
   
-  // Validate required scores exist
-  const overallIndex = results['Overall Readiness Index'] || results.overallIndex;
-  if (overallIndex === undefined) {
+  // Extract individual scores with parsing
+  const scores = {
+    'Financial Planning': parseScore(scoresRaw['Financial Planning']),
+    'Academic Readiness': parseScore(scoresRaw['Academic Readiness']),
+    'Career Alignment': parseScore(scoresRaw['Career Alignment']),
+    'Personal & Cultural': parseScore(scoresRaw['Personal & Cultural']),
+    'Practical Readiness': parseScore(scoresRaw['Practical Readiness']),
+    'Support System': parseScore(scoresRaw['Support System'])
+  };
+  
+  // Validate required scores exist and parse Overall Index
+  const overallIndexRaw = results['Overall Readiness Index'] || results.overallIndex;
+  if (overallIndexRaw === undefined) {
     throw new Error('Overall Readiness Index is required');
   }
+  const overallIndex = parseScore(overallIndexRaw);
   
   const readinessLevel = results['Readiness Level'] || results.readinessLevel;
   if (!readinessLevel) {
@@ -227,16 +240,27 @@ function generateHTMLContent(results: any): string {
   };
 
   // Helper to generate compact score card
-  const generateScoreCard = (label: string, score: number, weight: string) => {
-    const percentage = Math.round(score);
-    const barClass = percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : percentage >= 40 ? 'average' : 'weak';
+  const generateScoreCard = (label: string, score: number | string, weight: string) => {
+    // Ensure we have a clean numeric value
+    let cleanScore: number;
+    if (typeof score === 'number') {
+      cleanScore = Math.round(score);
+    } else if (typeof score === 'string') {
+      // Remove % and any non-numeric characters
+      const cleaned = score.replace(/[^\d.]/g, '');
+      cleanScore = Math.round(parseFloat(cleaned) || 0);
+    } else {
+      cleanScore = 0;
+    }
+    
+    const barClass = cleanScore >= 80 ? 'excellent' : cleanScore >= 60 ? 'good' : cleanScore >= 40 ? 'average' : 'weak';
     
     return `
       <div class="score-card">
         <h4>${label}</h4>
-        <div class="score-value">${percentage}%</div>
+        <div class="score-value">${cleanScore}%</div>
         <div class="score-bar">
-          <div class="score-fill ${barClass}" style="width: ${percentage}%"></div>
+          <div class="score-fill ${barClass}" style="width: ${cleanScore}%"></div>
         </div>
         <div style="font-size: 0.7em; color: #666; margin-top: 4px;">Weight: ${weight}</div>
       </div>
@@ -246,12 +270,12 @@ function generateHTMLContent(results: any): string {
   // Helper to generate radar chart
   const generateRadarChart = (scores: any) => {
     const categories = [
-      { name: 'Financial Planning', score: scores['Financial Planning'] || 0 },
-      { name: 'Academic Readiness', score: scores['Academic Readiness'] || 0 },
-      { name: 'Career Alignment', score: scores['Career Alignment'] || 0 },
-      { name: 'Personal & Cultural', score: scores['Personal & Cultural'] || 0 },
-      { name: 'Practical Readiness', score: scores['Practical Readiness'] || 0 },
-      { name: 'Support System', score: scores['Support System'] || 0 }
+      { name: 'Financial Planning', score: parseScore(scores['Financial Planning']) },
+      { name: 'Academic Readiness', score: parseScore(scores['Academic Readiness']) },
+      { name: 'Career Alignment', score: parseScore(scores['Career Alignment']) },
+      { name: 'Personal & Cultural', score: parseScore(scores['Personal & Cultural']) },
+      { name: 'Practical Readiness', score: parseScore(scores['Practical Readiness']) },
+      { name: 'Support System', score: parseScore(scores['Support System']) }
     ];
     
     return categories.map(category => `
@@ -265,12 +289,12 @@ function generateHTMLContent(results: any): string {
   // Helper to generate trend chart
   const generateTrendChart = (scores: any) => {
     const categories = [
-      { name: 'Financial', score: scores['Financial Planning'] || 0 },
-      { name: 'Academic', score: scores['Academic Readiness'] || 0 },
-      { name: 'Career', score: scores['Career Alignment'] || 0 },
-      { name: 'Cultural', score: scores['Personal & Cultural'] || 0 },
-      { name: 'Practical', score: scores['Practical Readiness'] || 0 },
-      { name: 'Support', score: scores['Support System'] || 0 }
+      { name: 'Financial', score: parseScore(scores['Financial Planning']) },
+      { name: 'Academic', score: parseScore(scores['Academic Readiness']) },
+      { name: 'Career', score: parseScore(scores['Career Alignment']) },
+      { name: 'Cultural', score: parseScore(scores['Personal & Cultural']) },
+      { name: 'Practical', score: parseScore(scores['Practical Readiness']) },
+      { name: 'Support', score: parseScore(scores['Support System']) }
     ];
     
     return categories.map(category => `
@@ -289,15 +313,17 @@ function generateHTMLContent(results: any): string {
     return countries.map((countryData, index) => {
       // Handle both old format (string) and new format (object)
       const country = typeof countryData === 'string' ? countryData : countryData.country;
-      const matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
+      let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
+      matchScore = parseScore(matchScore); // Ensure it's a number
       const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
+      const universities = typeof countryData === 'object' ? countryData.universities : '';
       
       return `
         <div class="country-matrix-item">
           <div class="country-matrix-rank">#${index + 1}</div>
           <div class="country-matrix-name">${country}</div>
           <div class="country-matrix-score">${matchScore}% Match</div>
-          <div class="country-matrix-desc">${description}</div>
+          <div class="country-matrix-desc">${description}${universities ? '<br><strong>Universities:</strong> ' + universities : ''}</div>
         </div>
       `;
     }).join('');
@@ -307,7 +333,9 @@ function generateHTMLContent(results: any): string {
   const generateCountryCard = (countryData: any, index: number) => {
     // Handle both old format (string) and new format (object)
     const country = typeof countryData === 'string' ? countryData : countryData.country;
-    const matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
+    let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
+    matchScore = parseScore(matchScore); // Ensure it's a number
+    const universities = typeof countryData === 'object' ? countryData.universities : '';
     
     const countryMaps: { [key: string]: string } = {
       'Singapore': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#e74c3c" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SG</text></svg>`,
@@ -330,6 +358,7 @@ function generateHTMLContent(results: any): string {
         <div class="country-flag">${countryMap}</div>
         <div class="country-name">${country}</div>
         <div class="country-score">${matchScore}% Match</div>
+        ${universities ? `<div style="font-size: 0.75em; color: #666; margin-top: 8px; text-align: center;">Universities: ${universities}</div>` : ''}
       </div>
     `;
   };
