@@ -87,8 +87,40 @@
     <50: Low Readiness (Reassess plan/delay, >18 months prep)
     
     COUNTRY-FIT MATRIX LOGIC:
-    Evaluate countries based on CRI level, financial affordability, course-career alignment, cultural adaptability, and visa risk.
-    Consider: Canada, Australia, UK, Germany, USA, Singapore, Ireland, Netherlands, UAE.
+    
+    ALGORITHM FOR COUNTRY RECOMMENDATIONS:
+    
+    For each country, calculate match score based on dimension scores:
+    
+    1. Financial Planning score:
+       - < 60: Favor Germany, Canada, Ireland, UAE (lower costs)
+       - >= 60: Any country acceptable
+    
+    2. Academic Readiness score:
+       - < 70: Suggest mid-tier universities in any country
+       - >= 70: Competitive universities accessible
+    
+    3. Personal & Cultural Readiness score:
+       - < 60: Favor UK, Australia, USA, Canada (large Indian communities)
+       - >= 60: Any country suitable
+    
+    4. Practical Readiness score:
+       - < 60: Avoid USA (complex visa), prefer straightforward processes
+       - >= 60: Any country manageable
+    
+    5. Support System score:
+       - < 60: Prioritize countries with strong student support services
+       - >= 60: Any country
+    
+    Calculate match percentage as weighted average (0-100):
+    - Strong dimension alignment = +20 points
+    - Moderate alignment = +10 points
+    - Weak alignment = -10 points
+    - Critical mismatches = -20 points
+    
+    Consider countries: Canada, Australia, UK, Germany, USA, Singapore, Ireland, Netherlands, UAE.
+    
+    IMPORTANT: Ensure recommendations align with student's actual readiness level. Don't recommend highly competitive options if CRI is low.
     
     You must provide:
     1. Detailed analysis of each dimension's specific constructs
@@ -203,12 +235,12 @@
       "Student Email": "${studentData.userEmail || ''}",
       "Student Phone": "${studentData.userPhone || ''}",
       "Scores": {
-        "Financial Planning": <calculate actual score>,
-        "Academic Readiness": <calculate actual score>,
-        "Career Alignment": <calculate actual score>,
-        "Personal & Cultural": <calculate actual score>,
-        "Practical Readiness": <calculate actual score>,
-        "Support System": <calculate actual score>
+        "Financial Planning": ${studentData.topicScoresArray.find(t => t.name === 'Financial Planning')?.correct || 0},
+        "Academic Readiness": ${studentData.topicScoresArray.find(t => t.name === 'Academic Readiness')?.correct || 0},
+        "Career Alignment": ${studentData.topicScoresArray.find(t => t.name === 'Career & Goal Alignment')?.correct || studentData.topicScoresArray.find(t => t.name === 'Career Alignment')?.correct || 0},
+        "Personal & Cultural": ${studentData.topicScoresArray.find(t => t.name === 'Personal & Cultural Readiness')?.correct || 0},
+        "Practical Readiness": ${studentData.topicScoresArray.find(t => t.name === 'Practical Readiness')?.correct || 0},
+        "Support System": ${studentData.topicScoresArray.find(t => t.name === 'Support System')?.correct || 0}
       },
       "Overall Readiness Index": <calculated CRI score>,
       "Readiness Level": "<determined level>",
@@ -217,9 +249,9 @@
       "Gaps": "<detailed paragraph citing specific weaknesses and risks>",
       "Recommendations": "<3-5 specific, actionable recommendations with timeline>",
       "Country Fit (Top 3)": [
-        {"country": "<name>", "match": <percentage>, "reasoning": "<detailed>", "challenges": "<specific>"},
-        {"country": "<name>", "match": <percentage>, "reasoning": "<detailed>", "challenges": "<specific>"},
-        {"country": "<name>", "match": <percentage>, "reasoning": "<detailed>", "challenges": "<specific>"}
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<detailed explanation citing which dimensions align>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"},
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<detailed explanation citing which dimensions align>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"},
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<detailed explanation citing which dimensions align>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"}
       ]
     }`
 
