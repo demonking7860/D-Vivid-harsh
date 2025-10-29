@@ -1234,12 +1234,14 @@ read_file
             .country-fit {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 18px;
-                margin: 25px 0 50px 0;
+                gap: 20px;
+                margin: 25px 0 35px 0;
                 padding: 20px;
                 background: linear-gradient(135deg, #f8f9fa, #ffffff);
                 border-radius: 16px;
                 border: 2px solid #e9ecef;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
             
             .country-card {
@@ -1252,6 +1254,9 @@ read_file
                 position: relative;
                 overflow: hidden;
                 transition: transform 0.3s ease;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 15px;
             }
             
             .country-card::before {
@@ -1431,6 +1436,9 @@ read_file
             
             .chart-container.full-width {
                 grid-column: 1 / -1;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 30px;
             }
             
             .chart-container h4 {
@@ -1573,7 +1581,10 @@ read_file
             .country-matrix {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
+                gap: 20px;
+                margin-bottom: 30px;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
             
             .country-matrix-item {
@@ -1586,6 +1597,9 @@ read_file
                 overflow: hidden;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.1);
                 transition: all 0.3s ease;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 20px;
             }
             
             .country-matrix-item::before {
@@ -1872,7 +1886,7 @@ read_file
                 </div>
                 
                 <!-- 🌍 COUNTRY READINESS MATRIX -->
-                <div class="chart-container full-width" style="margin: 40px 0;">
+                <div class="chart-container full-width" style="margin: 40px 0 50px 0; page-break-inside: avoid; break-inside: avoid;">
                     <h4>🌍 Country Readiness Matrix</h4>
                     <div class="country-matrix">
                         ${generateCountryMatrix(countryFit)}
@@ -1880,8 +1894,8 @@ read_file
                 </div>
                 
                 <!--  RECOMMENDED STUDY DESTINATIONS -->
-                <div class="country-fit">
-                    <h4 class="recommended-destinations-heading"> 🎓 Recommended Study Destinations</h4>
+                <div class="country-fit" style="page-break-inside: avoid; break-inside: avoid; margin-top: 40px;">
+                    <h4 class="recommended-destinations-heading">🎓 Recommended Study Destinations</h4>
                     <div class="recommended-destinations-divider"></div>
                     ${countryFit.map((countryData: any, index: number) => generateCountryCard(countryData, index)).join('')}
                 </div>
