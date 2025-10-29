@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
+import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
@@ -262,7 +264,6 @@ function generateHTMLContent(results: any): string {
         <div class="score-bar">
           <div class="score-fill ${barClass}" style="width: ${cleanScore}%"></div>
         </div>
-        <div style="font-size: 0.7em; color: #666; margin-top: 4px;">Weight: ${weight}</div>
       </div>
     `;
   };
@@ -308,6 +309,38 @@ function generateHTMLContent(results: any): string {
     `).join('');
   };
 
+  // Helper to format description text into bullet points for country matrix
+  const formatDescriptionToBullets = (text: string): string => {
+    if (!text) return '<div class="country-matrix-text">Good study destination</div>';
+    
+    // For country matrix, we want flowing paragraph text instead of many bullets
+    // Clean up the text and format as paragraphs with proper spacing
+    const cleanedText = text
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+    
+    // Split into sentences for better readability
+    const sentences = cleanedText.split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.match(/^\s*$/));
+    
+    // Group sentences into paragraphs (2-3 sentences per paragraph)
+    let paragraphs: string[] = [];
+    for (let i = 0; i < sentences.length; i += 2) {
+      const paragraphSentences = sentences.slice(i, i + 2).join('. ');
+      if (paragraphSentences.length > 0) {
+        paragraphs.push(paragraphSentences + (paragraphSentences.endsWith('.') ? '' : '.'));
+      }
+    }
+    
+    // If we have multiple paragraphs, format them; otherwise just use the cleaned text
+    if (paragraphs.length > 1) {
+      return `<div class="country-matrix-text">${paragraphs.map(p => `<p>${p}</p>`).join('')}</div>`;
+    } else {
+      return `<div class="country-matrix-text">${cleanedText}</div>`;
+    }
+  };
+
   // Helper to generate country matrix - now supports both string and object formats
   const generateCountryMatrix = (countries: any[]) => {
     return countries.map((countryData, index) => {
@@ -316,18 +349,211 @@ function generateHTMLContent(results: any): string {
       let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
       matchScore = parseScore(matchScore); // Ensure it's a number
       const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
-      const universities = typeof countryData === 'object' ? countryData.universities : '';
+      
+      // Load the country flag SVG
+      const countryFlag = loadCountryFlagSVG(country);
+      
+      // Format description as bullet points
+      const descriptionBullets = formatDescriptionToBullets(description);
       
       return `
         <div class="country-matrix-item">
           <div class="country-matrix-rank">#${index + 1}</div>
+          <div class="country-matrix-flag">${countryFlag}</div>
           <div class="country-matrix-name">${country}</div>
           <div class="country-matrix-score">${matchScore}% Match</div>
-          <div class="country-matrix-desc">${description}${universities ? '<br><strong>Universities:</strong> ' + universities : ''}</div>
+          <div class="country-matrix-desc">${descriptionBullets}</div>
         </div>
       `;
     }).join('');
   };
+
+  // Helper function to load SVG file and convert to base64 data URI
+  const loadCountryFlagSVG = (countryName: string): string => {
+    // Comprehensive map of country names to SVG file codes (ISO 3166-1 alpha-2 codes)
+    const countryToCodeMap: { [key: string]: string } = {
+      // Major Study Abroad Destinations
+      'Singapore': 'sg',
+      'Ireland': 'ie',
+      'Netherlands': 'nl',
+      'Holland': 'nl',
+      'Canada': 'ca',
+      'Australia': 'au',
+      'United Kingdom': 'gb',
+      'UK': 'gb',
+      'U.K.': 'gb',
+      'U.K': 'gb',
+      'Britain': 'gb',
+      'Great Britain': 'gb',
+      'Germany': 'de',
+      'Deutschland': 'de',
+      'United States': 'us',
+      'USA': 'us',
+      'US': 'us',
+      'U.S.A': 'us',
+      'U.S.A.': 'us',
+      'United States of America': 'us',
+      'America': 'us',
+      'India': 'in',
+      'United Arab Emirates': 'ae',
+      'UAE': 'ae',
+      'New Zealand': 'nz',
+      'France': 'fr',
+      'Sweden': 'se',
+      'Norway': 'no',
+      'Denmark': 'dk',
+      'Finland': 'fi',
+      'Switzerland': 'ch',
+      'Austria': 'at',
+      'Belgium': 'be',
+      'Italy': 'it',
+      'Spain': 'es',
+      'Portugal': 'pt',
+      'Greece': 'gr',
+      'Poland': 'pl',
+      'Czech Republic': 'cz',
+      'Hungary': 'hu',
+      'Romania': 'ro',
+      'Japan': 'jp',
+      'South Korea': 'kr',
+      'Korea': 'kr',
+      'China': 'cn',
+      'Hong Kong': 'hk',
+      'Taiwan': 'tw',
+      'Thailand': 'th',
+      'Malaysia': 'my',
+      'Indonesia': 'id',
+      'Philippines': 'ph',
+      'Vietnam': 'vn',
+      'South Africa': 'za',
+      'Brazil': 'br',
+      'Mexico': 'mx',
+      'Argentina': 'ar',
+      'Chile': 'cl',
+      'Turkey': 'tr',
+      'Israel': 'il',
+      'Saudi Arabia': 'sa',
+      'Qatar': 'qa',
+      'Kuwait': 'kw',
+      'Oman': 'om',
+      'Bahrain': 'bh',
+      'Russia': 'ru',
+      'Ukraine': 'ua',
+      'Belarus': 'by',
+      'Estonia': 'ee',
+      'Latvia': 'lv',
+      'Lithuania': 'lt',
+      'Slovakia': 'sk',
+      'Slovenia': 'si',
+      'Croatia': 'hr',
+      'Serbia': 'rs',
+      'Bulgaria': 'bg',
+      'Cyprus': 'cy',
+      'Malta': 'mt',
+      'Iceland': 'is',
+      'Luxembourg': 'lu',
+      'Monaco': 'mc',
+      'Andorra': 'ad',
+      'Liechtenstein': 'li',
+      'San Marino': 'sm',
+      'Vatican City': 'va',
+      'Vatican': 'va'
+    };
+
+    // Normalize country name (case-insensitive, handle variations)
+    const normalizedCountry = countryName?.trim() || '';
+    const countryCode = Object.keys(countryToCodeMap).find(key =>
+      key.toLowerCase() === normalizedCountry.toLowerCase() ||
+      normalizedCountry.toLowerCase().includes(key.toLowerCase()) ||
+      key.toLowerCase().includes(normalizedCountry.toLowerCase())
+    );
+    
+    const code = countryCode ? countryToCodeMap[countryCode] : null;
+    
+    // If no code found, try to extract first two letters as fallback code
+    if (!code) {
+      // Try to find a match by checking if any country name starts with the normalized country
+      const partialMatch = Object.keys(countryToCodeMap).find(key =>
+        normalizedCountry.toLowerCase().startsWith(key.toLowerCase()) ||
+        key.toLowerCase().startsWith(normalizedCountry.toLowerCase())
+      );
+      const finalCode = partialMatch ? countryToCodeMap[partialMatch] : null;
+      
+      if (!finalCode) {
+        // Fallback: use first two letters as country code
+        const fallbackCode = normalizedCountry.substring(0, 2).toLowerCase();
+        return `<svg width="70" height="45" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${fallbackCode.toUpperCase()}</text></svg>`;
+      }
+      
+      // Use the partial match code
+      const svgPath = path.join(process.cwd(), 'svg', `${finalCode}.svg`);
+      if (fs.existsSync(svgPath)) {
+        try {
+          const svgContent = fs.readFileSync(svgPath, 'utf-8');
+          const cleanedSVG = svgContent
+            .replace(/<svg([^>]*)>/, `<svg width="70" height="45" $1 class="country-map" preserveAspectRatio="xMidYMid meet">`)
+            .trim();
+          return cleanedSVG;
+        } catch (error) {
+          console.error(`Error loading SVG for ${countryName}:`, error);
+        }
+      }
+      
+      // Final fallback
+      return `<svg width="70" height="45" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${normalizedCountry.substring(0, 2).toUpperCase()}</text></svg>`;
+    }
+
+    try {
+      // Get the SVG file path - adjust path based on execution context
+      const svgPath = path.join(process.cwd(), 'svg', `${code}.svg`);
+      
+      // Read SVG file
+      if (fs.existsSync(svgPath)) {
+        const svgContent = fs.readFileSync(svgPath, 'utf-8');
+        // Clean the SVG content and add class, width, height for styling
+        // Ensure width and height are set for consistent PDF rendering
+        let cleanedSVG = svgContent.trim();
+        
+        // Remove existing width/height attributes if present, then add our own
+        cleanedSVG = cleanedSVG.replace(/\s+width="[^"]*"/gi, '');
+        cleanedSVG = cleanedSVG.replace(/\s+height="[^"]*"/gi, '');
+        cleanedSVG = cleanedSVG.replace(/<svg([^>]*)>/, `<svg width="70" height="45" $1 class="country-map" preserveAspectRatio="xMidYMid meet">`);
+        
+        // Return the SVG directly embedded in HTML
+        return cleanedSVG;
+      } else {
+        console.warn(`SVG file not found for country: ${countryName} (code: ${code})`);
+        // Fallback with proper dimensions
+        return `<svg width="70" height="45" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${normalizedCountry.substring(0, 2).toUpperCase()}</text></svg>`;
+      }
+    } catch (error) {
+      console.error(`Error loading SVG for ${countryName}:`, error);
+      // Fallback with proper dimensions
+      return `<svg width="70" height="45" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${normalizedCountry.substring(0, 2).toUpperCase()}</text></svg>`;
+    }
+  };
+
+  // Helper function to load AVIF logo and convert to base64 data URI
+  const loadLogoAVIF = (): string => {
+    try {
+      const logoPath = path.join(process.cwd(), 'logo.avif');
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath);
+        const logoBase64 = logoBuffer.toString('base64');
+        return `data:image/avif;base64,${logoBase64}`;
+      } else {
+        console.warn('Logo file not found, using fallback SVG');
+        // Return a simple SVG fallback
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODUiIGhlaWdodD0iODUiIHZpZXdCb3g9IjAgMCAzMjAgODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJsb2dvR3JhZCIgeDE9IjAiIHk1PSIwIiB4Mj0iMzIwIiB5Mj0iODAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjMDAzQjhDIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHAgZD0iTTAgMCBMNzAgMCBMMzUgNjAgWiIgZmlsbD0idXJsKCNsb2dvR3JhZCkiIG9wYWNpdHk9IjAuOTUiLz48L3N2Zz4=';
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODUiIGhlaWdodD0iODUiIHZpZXdCb3g9IjAgMCAzMjAgODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJsb2dvR3JhZCIgeDE9IjAiIHk1PSIwIiB4Mj0iMzIwIiB5Mj0iODAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjMDAzQjhDIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHAgZD0iTTAgMCBMNzAgMCBMMzUgNjAgWiIgZmlsbD0idXJsKCNsb2dvR3JhZCkiIG9wYWNpdHk9IjAuOTUiLz48L3N2Zz4=';
+    }
+  };
+
+  // Load logo once
+  const logoDataURI = loadLogoAVIF();
 
   // Helper to generate compact country card with country map SVG - now supports both formats
   const generateCountryCard = (countryData: any, index: number) => {
@@ -337,7 +563,11 @@ function generateHTMLContent(results: any): string {
     matchScore = parseScore(matchScore); // Ensure it's a number
     const universities = typeof countryData === 'object' ? countryData.universities : '';
     
-    const countryMaps: { [key: string]: string } = {
+    // Load the actual SVG flag from file
+    const countryMap = loadCountryFlagSVG(country);
+    
+    // OLD CODE REMOVED - now using SVG files from svg folder
+    const countryMaps_DEPRECATED: { [key: string]: string } = {
       'Singapore': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#e74c3c" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SG</text></svg>`,
       'Ireland': `<svg viewBox="0 0 100 60" class="country-map"><rect width="33" height="60" fill="#009639"/><rect x="33" width="34" height="60" fill="white"/><rect x="67" width="33" height="60" fill="#ff7900"/><text x="50" y="35" text-anchor="middle" fill="black" font-size="10" font-weight="bold">IE</text></svg>`,
       'Netherlands': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="20" fill="#c8102e"/><rect y="20" width="100" height="20" fill="white"/><rect y="40" width="100" height="20" fill="#003da5"/><text x="50" y="35" text-anchor="middle" fill="black" font-size="10" font-weight="bold">NL</text></svg>`,
@@ -350,7 +580,7 @@ function generateHTMLContent(results: any): string {
       'United Arab Emirates': `<svg viewBox="0 0 100 60" class="country-map"><rect width="25" height="60" fill="#ce1126"/><rect x="25" width="75" height="20" fill="#009639"/><rect x="25" y="20" width="75" height="20" fill="white"/><rect x="25" y="40" width="75" height="20" fill="#000000"/><text x="60" y="35" text-anchor="middle" fill="red" font-size="10" font-weight="bold">AE</text></svg>`
     };
     
-    const countryMap = countryMaps[country] || `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">🌍</text></svg>`;
+    // const countryMap = countryMaps_DEPRECATED[country] || `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">🌍</text></svg>`;
     
     return `
       <div class="country-card">
@@ -358,7 +588,7 @@ function generateHTMLContent(results: any): string {
         <div class="country-flag">${countryMap}</div>
         <div class="country-name">${country}</div>
         <div class="country-score">${matchScore}% Match</div>
-        ${universities ? `<div style="font-size: 0.75em; color: #666; margin-top: 8px; text-align: center;">Universities: ${universities}</div>` : ''}
+        ${universities ? `<div class="universities-section"><span class="universities-label">Universities:</span><span class="universities-list">${universities}</span></div>` : ''}
       </div>
     `;
   };
@@ -431,12 +661,13 @@ function generateHTMLContent(results: any): string {
             .header {
                 background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%);
                 color: white;
-                padding: 20px 30px;
+                padding: 15px 25px;
                 text-align: center;
                 position: relative;
                 overflow: hidden;
-                height: 110px;
-                min-height: 110px;
+                height: 100px;
+                min-height: 100px;
+                border-radius: 16px 16px 0 0;
                 box-shadow: 0 4px 15px rgba(0, 59, 140, 0.3);
             }
             
@@ -494,7 +725,7 @@ function generateHTMLContent(results: any): string {
             
             .company-info h1 {
                 font-family: 'Montserrat', sans-serif;
-                font-size: 2.0em;
+                font-size: 1.7em;
                 font-weight: 900;
                 margin: 0;
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
@@ -505,9 +736,9 @@ function generateHTMLContent(results: any): string {
             }
             
             .company-info p {
-                font-size: 1.0em;
+                font-size: 0.85em;
                 opacity: 0.95;
-                margin: 4px 0 0 0;
+                margin: 3px 0 0 0;
                 font-weight: 600;
                 line-height: 1.2;
                 position: relative;
@@ -521,7 +752,7 @@ function generateHTMLContent(results: any): string {
             }
             
             .report-title h2 {
-                font-size: 1.5em;
+                font-size: 1.3em;
                 font-weight: 800;
                 margin: 0;
                 line-height: 1.2;
@@ -533,9 +764,9 @@ function generateHTMLContent(results: any): string {
             }
             
             .report-title p {
-                font-size: 0.9em;
+                font-size: 0.8em;
                 opacity: 0.95;
-                margin: 4px 0 0 0;
+                margin: 3px 0 0 0;
                 padding: 0 10px;
                 position: relative;
                 z-index: 2;
@@ -548,7 +779,7 @@ function generateHTMLContent(results: any): string {
                 bottom: 0;
                 left: 0;
                 right: 0;
-                background: linear-gradient(135deg, #003B8C 0%, #5BE49B 100%);
+                background: linear-gradient(135deg, #003B8C 0%, #1e40af 50%, #5BE49B 100%);
                 color: white;
                 padding: 8px 20px;
                 text-align: center;
@@ -557,6 +788,7 @@ function generateHTMLContent(results: any): string {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                border-radius: 0 0 16px 16px;
             }
             
             .disclaimer {
@@ -594,21 +826,22 @@ function generateHTMLContent(results: any): string {
             }
             
             .content {
-                padding: 25px 30px;
-                min-height: calc(297mm - 170px);
+                padding: 20px 25px;
+                max-height: calc(297mm - 160px);
                 display: flex;
                 flex-direction: column;
-                gap: 20px;
+                gap: 15px;
                 background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
-                padding-bottom: 50px;
+                padding-bottom: 60px;
+                overflow: hidden;
             }
             
             .student-info {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 20px;
-                margin-bottom: 25px;
-                padding: 20px;
+                gap: 15px;
+                margin-bottom: 15px;
+                padding: 15px;
                 background: linear-gradient(135deg, #ffffff, #f8fafb);
                 border-radius: 12px;
                 border: 2px solid #e9ecef;
@@ -616,53 +849,58 @@ function generateHTMLContent(results: any): string {
             }
             
             .info-item {
-                background: linear-gradient(135deg, #ffffff, #f8f9fa);
-                padding: 18px;
-                border-radius: 10px;
-                border-left: 5px solid #5BE49B;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, #ffffff, #f0f9ff);
+                padding: 20px;
+                border-radius: 12px;
+                border: 2px solid #e0f2fe;
+                border-left: 5px solid #003B8C;
+                box-shadow: 0 4px 12px rgba(0, 59, 140, 0.1);
                 transition: transform 0.2s ease;
             }
             
             .info-item:hover {
                 transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0, 59, 140, 0.15);
             }
             
             .info-label {
-                font-weight: 700;
-                color: #495057;
-                margin-bottom: 8px;
-                font-size: 0.9em;
+                font-weight: 800;
+                color: #003B8C;
+                margin-bottom: 10px;
+                font-size: 0.85em;
                 text-transform: uppercase;
-                letter-spacing: 1px;
+                letter-spacing: 1.5px;
                 display: flex;
                 align-items: center;
             }
             
             .info-label::before {
-                content: '●';
+                content: '▸';
                 color: #5BE49B;
-                margin-right: 8px;
-                font-size: 1.2em;
+                margin-right: 10px;
+                font-size: 1.4em;
+                font-weight: bold;
             }
             
             .info-value {
-                font-size: 1.4em;
-                font-weight: 800;
-                color: #003B8C;
+                font-size: 1.3em;
+                font-weight: 700;
+                color: #1e40af;
                 word-break: break-word;
+                line-height: 1.4;
             }
             
             .overall-score {
                 text-align: center;
-                margin: 25px 0;
-                padding: 30px;
+                margin: 20px 0;
+                padding: 30px 25px;
                 background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%);
                 color: white;
-                border-radius: 16px;
+                border-radius: 20px;
                 position: relative;
                 overflow: hidden;
-                box-shadow: 0 8px 25px rgba(0, 59, 140, 0.3);
+                box-shadow: 0 10px 30px rgba(0, 59, 140, 0.4);
+                border: 3px solid rgba(255,255,255,0.2);
             }
             
             .overall-score::before {
@@ -689,8 +927,8 @@ function generateHTMLContent(results: any): string {
             }
             
             .overall-score h3 {
-                font-size: 4.5em;
-                margin-bottom: 12px;
+                font-size: 3.5em;
+                margin-bottom: 8px;
                 font-weight: 900;
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                 position: relative;
@@ -698,21 +936,21 @@ function generateHTMLContent(results: any): string {
             }
             
             .overall-score p {
-                font-size: 1.6em;
+                font-size: 1.3em;
                 opacity: 0.95;
                 font-weight: 700;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
                 position: relative;
                 z-index: 1;
-                margin-top: 8px;
+                margin-top: 5px;
             }
             
             .scores-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 18px;
-                margin: 25px 0;
-                padding: 20px;
+                gap: 12px;
+                margin: 15px 0;
+                padding: 15px;
                 background: linear-gradient(135deg, #f8f9fa, #ffffff);
                 border-radius: 16px;
                 border: 2px solid #e9ecef;
@@ -720,7 +958,7 @@ function generateHTMLContent(results: any): string {
             
             .score-card {
                 background: linear-gradient(135deg, #ffffff, #f8fafb);
-                padding: 20px;
+                padding: 15px;
                 border-radius: 12px;
                 border: 2px solid #e9ecef;
                 text-align: center;
@@ -755,10 +993,10 @@ function generateHTMLContent(results: any): string {
             }
             
             .score-value {
-                font-size: 2.8em;
+                font-size: 2.2em;
                 font-weight: 900;
                 color: #003B8C;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
             }
             
@@ -820,13 +1058,30 @@ function generateHTMLContent(results: any): string {
             .analysis-section {
                 background: linear-gradient(135deg, #ffffff, #f8fafb);
                 padding: 25px;
-                border-radius: 12px;
-                border: 2px solid #e9ecef;
-                border-left: 6px solid #003B8C;
+                border-radius: 16px;
+                border: 3px solid #e9ecef;
                 margin: 20px 0;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.12);
                 position: relative;
                 overflow: hidden;
+            }
+            
+            .analysis-section.strengths {
+                background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+                border-left: 6px solid #22c55e;
+                border-right: 6px solid #22c55e;
+            }
+            
+            .analysis-section.gaps {
+                background: linear-gradient(135deg, #fffbeb, #fef3c7);
+                border-left: 6px solid #f59e0b;
+                border-right: 6px solid #f59e0b;
+            }
+            
+            .analysis-section.recommendations {
+                background: linear-gradient(135deg, #eff6ff, #dbeafe);
+                border-left: 6px solid #3b82f6;
+                border-right: 6px solid #3b82f6;
             }
             
             .analysis-section::before {
@@ -835,28 +1090,59 @@ function generateHTMLContent(results: any): string {
                 top: 0;
                 left: 0;
                 width: 100%;
-                height: 3px;
-                background: linear-gradient(90deg, #003B8C, #5BE49B, #003B8C);
+                height: 5px;
+            }
+            
+            .analysis-section.strengths::before {
+                background: linear-gradient(90deg, #22c55e, #16a34a, #22c55e);
+            }
+            
+            .analysis-section.gaps::before {
+                background: linear-gradient(90deg, #f59e0b, #d97706, #f59e0b);
+            }
+            
+            .analysis-section.recommendations::before {
+                background: linear-gradient(90deg, #3b82f6, #2563eb, #3b82f6);
             }
             
             .analysis-section h4 {
-                font-size: 1.4em;
-                color: #003B8C;
-                margin-bottom: 15px;
-                font-weight: 800;
+                font-size: 1.5em;
+                margin-bottom: 18px;
+                font-weight: 900;
                 display: flex;
                 align-items: center;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 1px;
+                padding: 12px 18px;
+                border-radius: 8px;
+                margin-left: -25px;
+                margin-right: -25px;
+                margin-top: -25px;
+            }
+            
+            .analysis-section.strengths h4 {
+                background: linear-gradient(135deg, #22c55e, #16a34a);
+                color: white;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            }
+            
+            .analysis-section.gaps h4 {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: white;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            }
+            
+            .analysis-section.recommendations h4 {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
             }
             
             .analysis-section h4::after {
-                content: '';
-                flex: 1;
-                height: 2px;
-                background: linear-gradient(90deg, #003B8C, transparent);
-                margin-left: 15px;
+                display: none;
             }
+ییر<｜tool▁call▁begin｜>
+read_file
             
             .analysis-section p {
                 line-height: 1.8;
@@ -892,21 +1178,57 @@ function generateHTMLContent(results: any): string {
                 font-weight: bold;
             }
             
+            .strengths .bullet-item {
+                background: rgba(34, 197, 94, 0.05);
+                padding: 10px 15px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                border-left: 4px solid #22c55e;
+            }
+            
+            .strengths .bullet-item {
+                padding-left: 35px;
+            }
+            
             .strengths .bullet-item::before {
                 content: '✓';
                 color: #22c55e;
                 font-weight: 900;
+                font-size: 1.4em;
+                left: 10px;
+            }
+            
+            .gaps .bullet-item {
+                background: rgba(245, 158, 11, 0.05);
+                padding: 10px 15px;
+                padding-left: 35px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                border-left: 4px solid #f59e0b;
             }
             
             .gaps .bullet-item::before {
                 content: '⚠';
                 color: #f59e0b;
+                font-size: 1.4em;
+                left: 10px;
+            }
+            
+            .recommendations .bullet-item {
+                background: rgba(59, 130, 246, 0.05);
+                padding: 10px 15px;
+                padding-left: 35px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                border-left: 4px solid #3b82f6;
             }
             
             .recommendations .bullet-item::before {
                 content: '→';
                 color: #3b82f6;
                 font-weight: bold;
+                font-size: 1.4em;
+                left: 10px;
             }
             
             .country-fit {
@@ -968,11 +1290,14 @@ function generateHTMLContent(results: any): string {
             }
             
             .country-map {
-                width: 50px;
-                height: 30px;
+                width: 70px;
+                height: 45px;
                 border-radius: 4px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.2);
                 border: 1px solid #dee2e6;
+                display: block;
+                margin: 0 auto;
+                object-fit: contain;
             }
             
             .country-name {
@@ -989,6 +1314,71 @@ function generateHTMLContent(results: any): string {
                 border-radius: 6px;
                 font-weight: 700;
                 font-size: 1.0em;
+            }
+            
+            .universities-section {
+                margin-top: 12px;
+                padding: 12px;
+                background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+                border-radius: 8px;
+                border-left: 4px solid #003B8C;
+                text-align: left;
+            }
+            
+            .universities-label {
+                display: block;
+                font-weight: 800;
+                color: #003B8C;
+                font-size: 0.85em;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 6px;
+            }
+            
+            .universities-list {
+                display: block;
+                color: #1e40af;
+                font-size: 0.8em;
+                line-height: 1.6;
+                font-weight: 600;
+            }
+            
+            .recommended-destinations-heading {
+                grid-column: 1/-1;
+                text-align: center;
+                background: linear-gradient(135deg, #003B8C 0%, #1e40af 25%, #5BE49B 75%, #22c55e 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin-bottom: 15px;
+                font-size: 1.8em;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                position: relative;
+                padding-bottom: 15px;
+                text-shadow: none;
+            }
+            
+            .recommended-destinations-heading::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 150px;
+                height: 4px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B, #003B8C);
+                border-radius: 2px;
+            }
+            
+            .recommended-destinations-divider {
+                grid-column: 1/-1;
+                width: 150px;
+                height: 3px;
+                background: linear-gradient(90deg, #003B8C, #5BE49B, #003B8C);
+                margin: 0 auto 25px auto;
+                border-radius: 2px;
             }
             
             .charts-section {
@@ -1227,6 +1617,23 @@ function generateHTMLContent(results: any): string {
                 font-size: 1.0em;
             }
             
+            .country-matrix-flag {
+                margin: 8px auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .country-matrix-flag .country-map {
+                width: 60px;
+                height: 40px;
+                border-radius: 4px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                border: 1px solid #dee2e6;
+                display: block;
+                margin: 0 auto;
+            }
+            
             .country-matrix-name {
                 font-size: 1.1em;
                 font-weight: 700;
@@ -1245,10 +1652,57 @@ function generateHTMLContent(results: any): string {
             }
             
             .country-matrix-desc {
-                font-size: 0.8em;
-                color: #666;
-                margin-top: 8px;
+                font-size: 0.75em;
+                color: #1e293b;
+                margin-top: 12px;
+                line-height: 1.5;
+                background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+                padding: 12px;
+                border-radius: 8px;
+                border-left: 4px solid #003B8C;
+                text-align: left;
+            }
+            
+            .country-matrix-text {
+                color: #1e293b;
+                font-size: 0.85em;
+                font-weight: 500;
+                line-height: 1.6;
+            }
+            
+            .country-matrix-text p {
+                margin: 0 0 8px 0;
+                text-align: justify;
+            }
+            
+            .country-matrix-text p:last-child {
+                margin-bottom: 0;
+            }
+            
+            .country-matrix-desc .bullet-list {
+                list-style: none;
+                padding: 0;
+                margin: 8px 0 0 0;
+            }
+            
+            .country-matrix-desc .bullet-item {
+                position: relative;
+                padding-left: 18px;
+                margin-bottom: 5px;
                 line-height: 1.4;
+                color: #1e293b;
+                font-size: 0.85em;
+                font-weight: 700;
+            }
+            
+            .country-matrix-desc .bullet-item::before {
+                content: '▸';
+                position: absolute;
+                left: 4px;
+                top: 1px;
+                color: #003B8C;
+                font-size: 1.0em;
+                font-weight: bold;
             }
             
             @media print {
@@ -1298,11 +1752,11 @@ function generateHTMLContent(results: any): string {
                 <div class="header-content">
                     <div class="logo-section">
                         <div class="logo">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                            <img src="${logoDataURI}" alt="D-Vivid Logo"/>
                         </div>
                         <div class="company-info">
                             <h1>D-Vivid Consultant</h1>
-                            <p>Strategic Counselling Circle</p>
+                            <p>Your Gateway to Global Education</p>
                         </div>
                     </div>
                     <div class="report-title">
@@ -1343,9 +1797,9 @@ function generateHTMLContent(results: any): string {
             <div class="footer">
                 <div style="display: flex; align-items: center;">
                     <div class="footer-logo">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi/+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                        <img src="${logoDataURI}" alt="D-Vivid Logo"/>
                     </div>
-                    <span>D-Vivid Consultant - Strategic Counselling Circle</span>
+                    <span>D-Vivid Consultant - Your Gateway to Global Education</span>
                 </div>
                 <div>Report Generated: ${currentDate}</div>
             </div>
@@ -1358,11 +1812,11 @@ function generateHTMLContent(results: any): string {
                 <div class="header-content">
                     <div class="logo-section">
                         <div class="logo">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                            <img src="${logoDataURI}" alt="D-Vivid Logo"/>
                         </div>
                         <div class="company-info">
                             <h1>D-Vivid Consultant</h1>
-                            <p>Strategic Counselling Circle</p>
+                            <p>Your Gateway to Global Education</p>
                         </div>
                     </div>
                     <div class="report-title">
@@ -1425,10 +1879,10 @@ function generateHTMLContent(results: any): string {
                     </div>
                 </div>
                 
-                <!-- 🎓 RECOMMENDED STUDY DESTINATIONS -->
+                <!--  RECOMMENDED STUDY DESTINATIONS -->
                 <div class="country-fit">
-                    <h4 style="grid-column: 1/-1; text-align: center; color: #003B8C; margin-bottom: 15px; font-size: 1.4em; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; position: relative; padding-bottom: 10px;">� Recommended Study Destinations</h4>
-                    <div style="grid-column: 1/-1; width: 80px; height: 3px; background: linear-gradient(90deg, #003B8C, #5BE49B); margin: 0 auto 20px auto; border-radius: 2px;"></div>
+                    <h4 class="recommended-destinations-heading"> 🎓 Recommended Study Destinations</h4>
+                    <div class="recommended-destinations-divider"></div>
                     ${countryFit.map((countryData: any, index: number) => generateCountryCard(countryData, index)).join('')}
                 </div>
             </div>
@@ -1442,7 +1896,7 @@ function generateHTMLContent(results: any): string {
                     <div class="footer-logo">
                         <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi/+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi/+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
                     </div>
-                    <span>D-Vivid Consultant - Strategic Counselling Circle</span>
+                    <span>D-Vivid Consultant - Your Gateway to Global Education</span>
                 </div>
                 <div>Report Generated: ${currentDate}</div>
             </div>
