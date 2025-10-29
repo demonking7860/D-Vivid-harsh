@@ -619,23 +619,6 @@ export default function ExpandedSurvey() {
           localStorage.setItem('lastLLMPayload', JSON.stringify(comprehensiveData));
           console.log('💾 Data saved to localStorage as "lastLLMPayload"');
           
-          // Attempt to save as downloadable file (browser API)
-          try {
-            const dataStr = JSON.stringify(comprehensiveData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `llm-payload-expanded-${Date.now()}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            console.log('📥 Downloaded JSON payload file for inspection');
-          } catch (downloadError) {
-            console.warn('⚠️ Could not auto-download file:', downloadError);
-          }
-          
           const response = await fetch('/api/analyze-results', {
             method: 'POST',
             headers: {
