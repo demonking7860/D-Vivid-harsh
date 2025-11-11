@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (!SHEET_ID) {
       console.error('Missing GOOGLE_SHEET_ID configuration');
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Server configuration error(sheetid)' },
         { status: 500 }
       );
     }
