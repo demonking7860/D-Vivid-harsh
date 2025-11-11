@@ -31,8 +31,6 @@ const getServiceAccountAuth = () => {
         private_key: credentials.private_key,
         client_email: credentials.client_email,
         client_id: credentials.client_id,
-        auth_uri: credentials.auth_uri,
-        token_uri: credentials.token_uri,
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
