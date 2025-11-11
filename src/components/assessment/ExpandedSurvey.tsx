@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "../ui/progress";
 import { CheckCircle } from "lucide-react";
+import { logUserToSheets } from "@/functions/log-user";
 
 interface Question {
   id: string;
@@ -515,14 +516,44 @@ export default function ExpandedSurvey() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ email?: string; mobile?: string }>({});
 
   const currentQuestion = expandedQuestions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / expandedQuestions.length) * 100;
 
-  const handleInfoSubmit = (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const errors: { email?: string; mobile?: string } = {};
+
+    // Email validation - strict format check
+    if (!userInfo.email) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(userInfo.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Mobile validation - exactly 10 digits for India
+    if (!userInfo.mobile) {
+      errors.mobile = "Mobile number is required";
+    } else if (!/^\d{10}$/.test(userInfo.mobile.replace(/\s/g, ''))) {
+      errors.mobile = "Mobile number must be exactly 10 digits";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (userInfo.email && userInfo.mobile) {
-      setStep('survey');
+    if (validateForm()) {
+      try {
+        // Log user data to Google Sheets
+        await logUserToSheets(userInfo.email, userInfo.mobile, 'Expanded');
+        setStep('survey');
+      } catch (error) {
+        console.error('Failed to log user:', error);
+        // Still proceed with survey even if logging fails
+        setStep('survey');
+      }
     }
   };
 
@@ -704,20 +735,40 @@ export default function ExpandedSurvey() {
                   type="email"
                   placeholder="your.email@example.com"
                   value={userInfo.email}
-                  onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+                  onChange={(e) => {
+                    setUserInfo({...userInfo, email: e.target.value});
+                    if (validationErrors.email) {
+                      setValidationErrors({...validationErrors, email: ''});
+                    }
+                  }}
+                  className={validationErrors.email ? 'border-red-500' : ''}
                   required
                 />
+                {validationErrors.email && (
+                  <p className="text-red-500 text-sm">{validationErrors.email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mobile">Mobile Number</Label>
                 <Input
                   id="mobile"
                   type="tel"
-                  placeholder="+91 XXXXX XXXXX"
+                  placeholder="9876543210"
                   value={userInfo.mobile}
-                  onChange={(e) => setUserInfo({...userInfo, mobile: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    setUserInfo({...userInfo, mobile: value});
+                    if (validationErrors.mobile) {
+                      setValidationErrors({...validationErrors, mobile: ''});
+                    }
+                  }}
+                  className={validationErrors.mobile ? 'border-red-500' : ''}
+                  maxLength={10}
                   required
                 />
+                {validationErrors.mobile && (
+                  <p className="text-red-500 text-sm">{validationErrors.mobile}</p>
+                )}
               </div>
               <Button 
                 type="submit" 
