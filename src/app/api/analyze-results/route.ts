@@ -14,7 +14,7 @@
         total: number
       }>
     }
-
+ //fun
     // Removed LLMResponse interface - we now return data in the format expected by generate-pdf
     // The LLM is instructed to return JSON with fields matching the PDF generation requirements:
     // - "Student Name", "Student Email", "Student Phone"
