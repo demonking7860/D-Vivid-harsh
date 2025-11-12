@@ -1,4 +1,6 @@
+// ✅ Force server-side (Node.js) runtime and disable static optimization
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
@@ -14,7 +16,7 @@ interface UserData {
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const RANGE = 'Sheet1!A:G'; // Columns: Email, Phone, Survey Type, Timestamp, Lead Generated, Contacted, Notes
 
-// Parse service account credentials from environment variable or AWS Secrets Manager in future
+// Parse service account credentials from environment variable
 const getServiceAccountAuth = () => {
   const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
@@ -25,7 +27,7 @@ const getServiceAccountAuth = () => {
   try {
     const credentials = JSON.parse(serviceAccountKey);
 
-    // Basic sanity check
+    // Basic sanity check for key integrity
     if (!credentials.private_key?.includes('BEGIN PRIVATE KEY')) {
       throw new Error('Invalid or truncated private key');
     }
@@ -66,10 +68,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 🔍 Check environment injection early
     if (!SHEET_ID) {
-      console.error('Missing GOOGLE_SHEET_ID configuration');
+      console.error('❌ Missing GOOGLE_SHEET_ID environment variable');
       return NextResponse.json(
-        { error: 'Server configuration error (missing sheet ID)' },
+        {
+          error: 'Server configuration error (missing sheet ID)',
+          debug: {
+            sheetIdValue: process.env.GOOGLE_SHEET_ID,
+            availableKeys: Object.keys(process.env || {}),
+          },
+        },
         { status: 500 }
       );
     }
@@ -84,16 +93,11 @@ export async function POST(request: NextRequest) {
     });
 
     const rows = getResponse.data.values || [];
-
-    // Check if email already exists (skip header row)
     const emailExists = rows.slice(1).some((row: string[]) => row[0] === email);
 
     if (emailExists) {
       return NextResponse.json(
-        {
-          message: 'User already registered',
-          isDuplicate: true,
-        },
+        { message: 'User already registered', isDuplicate: true },
         { status: 200 }
       );
     }
@@ -105,41 +109,36 @@ export async function POST(request: NextRequest) {
       phone,
       surveyType || 'Unknown',
       timestamp,
-      '', // Lead Generated - empty for now
-      '', // Contacted - empty for now
-      '', // Notes - empty for now
+      '', // Lead Generated
+      '', // Contacted
+      '', // Notes
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
       range: RANGE,
       valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [newRow],
-      },
+      requestBody: { values: [newRow] },
     });
 
     return NextResponse.json(
       {
         message: 'User data logged successfully',
         isDuplicate: false,
-        data: {
-          email,
-          phone,
-          surveyType,
-          timestamp,
-        },
+        data: { email, phone, surveyType, timestamp },
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error in log-user API:', error);
+    console.error('❌ Error in log-user API:', error);
 
-    // 🔍 Debug info (safe to log - does not expose secrets)
+    // 🔍 Debug output for diagnosing env or key issues
     const debugInfo = {
       hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
       keyLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0,
       sheetIdSet: !!process.env.GOOGLE_SHEET_ID,
+      runtime: process.env.AWS_EXECUTION_ENV || 'unknown',
+      nextRuntime: process.env.NEXT_RUNTIME || 'unknown',
     };
 
     return NextResponse.json(
