@@ -12,17 +12,22 @@ interface UserData {
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const RANGE = 'Sheet1!A:G'; // Columns: Email, Phone, Survey Type, Timestamp, Lead Generated, Contacted, Notes
 
-// Parse service account credentials from environment variable
+// Parse service account credentials from environment variable or AWS Secrets Manager in future
 const getServiceAccountAuth = () => {
   const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  
+
   if (!serviceAccountKey) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
   }
 
   try {
     const credentials = JSON.parse(serviceAccountKey);
-    
+
+    // Basic sanity check
+    if (!credentials.private_key?.includes('BEGIN PRIVATE KEY')) {
+      throw new Error('Invalid or truncated private key');
+    }
+
     return new google.auth.GoogleAuth({
       credentials: {
         type: credentials.type,
@@ -35,6 +40,7 @@ const getServiceAccountAuth = () => {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
   } catch (error) {
+    console.error('Failed to parse Google Service Account key:', error);
     throw new Error(`Failed to parse service account key: ${error}`);
   }
 };
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (!SHEET_ID) {
       console.error('Missing GOOGLE_SHEET_ID configuration');
       return NextResponse.json(
-        { error: 'Server configuration error(sheetid)' },
+        { error: 'Server configuration error (missing sheet ID)' },
         { status: 500 }
       );
     }
@@ -79,12 +85,12 @@ export async function POST(request: NextRequest) {
 
     // Check if email already exists (skip header row)
     const emailExists = rows.slice(1).some((row: string[]) => row[0] === email);
-    
+
     if (emailExists) {
       return NextResponse.json(
-        { 
+        {
           message: 'User already registered',
-          isDuplicate: true 
+          isDuplicate: true,
         },
         { status: 200 }
       );
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
       timestamp,
       '', // Lead Generated - empty for now
       '', // Contacted - empty for now
-      ''  // Notes - empty for now
+      '', // Notes - empty for now
     ];
 
     await sheets.spreadsheets.values.append({
@@ -119,16 +125,26 @@ export async function POST(request: NextRequest) {
           email,
           phone,
           surveyType,
-          timestamp
-        }
+          timestamp,
+        },
       },
       { status: 201 }
     );
-
   } catch (error) {
     console.error('Error in log-user API:', error);
+
+    // 🔍 Debug info (safe to log - does not expose secrets)
+    const debugInfo = {
+      hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+      keyLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0,
+      sheetIdSet: !!process.env.GOOGLE_SHEET_ID,
+    };
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+        envDebug: debugInfo,
+      },
       { status: 500 }
     );
   }
