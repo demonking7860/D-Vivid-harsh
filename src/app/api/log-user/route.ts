@@ -93,4 +93,44 @@ export async function POST(request: NextRequest) {
     const newRow = [
       email,
       phone,
-      surveyType || '
+      surveyType || 'Unknown',
+      timestamp,
+      '', // Lead Generated
+      '', // Contacted
+      '', // Notes
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: RANGE,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [newRow] },
+    });
+
+    return NextResponse.json(
+      {
+        message: 'User data logged successfully',
+        isDuplicate: false,
+        data: { email, phone, surveyType, timestamp },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('❌ Error in log-user API:', error);
+
+    const debugInfo = {
+      hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+      keyLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0,
+      runtime: process.env.AWS_EXECUTION_ENV || 'unknown',
+      nextRuntime: process.env.NEXT_RUNTIME || 'unknown',
+    };
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Internal server error',
+        envDebug: debugInfo,
+      },
+      { status: 500 }
+    );
+  }
+}
