@@ -1,6 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { google } from 'googleapis'
+
+// Google Sheets configuration
+const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U"
+const RANGE = 'Sheet1!A:G' // Columns: Email, Phone, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL
+
+// Parse service account credentials from environment variable
+const getServiceAccountAuth = () => {
+  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+
+  if (!serviceAccountKey) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
+  }
+
+  try {
+    const credentials = JSON.parse(serviceAccountKey);
+
+    if (!credentials.private_key?.includes('BEGIN PRIVATE KEY')) {
+      throw new Error('Invalid or truncated private key');
+    }
+
+    return new google.auth.GoogleAuth({
+      credentials: {
+        type: credentials.type,
+        project_id: credentials.project_id,
+        private_key_id: credentials.private_key_id,
+        private_key: credentials.private_key,
+        client_email: credentials.client_email,
+        client_id: credentials.client_id,
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+  } catch (error) {
+    console.error('Failed to parse Google Service Account key:', error);
+    throw new Error(`Failed to parse service account key: ${error}`);
+  }
+};
+
+// Initialize Sheets API client
+const getSheetsClient = async () => {
+  const auth = getServiceAccountAuth();
+  const sheets = google.sheets({ version: 'v4', auth });
+  return sheets;
+};
+
+// Function to store PDF URL in Google Sheets
+const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) => {
+  try {
+    console.log('📊 Attempting to store S3 URL in Google Sheets...');
+    const sheets = await getSheetsClient();
+    
+    // Get existing data to find matching row
+    const getResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: RANGE,
+    });
+
+    const rows = getResponse.data.values || [];
+    let rowIndex = -1;
+    
+    // Find row with matching email
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i] && rows[i][0] === email) {
+        rowIndex = i + 1; // Google Sheets uses 1-based indexing
+        break;
+      }
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    if (rowIndex > 0) {
+      // Update only column G (S3 URL) in existing row
+      console.log(`📝 Updating row ${rowIndex} with S3 URL...`);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `Sheet1!G${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[s3Url]]
+        }
+      });
+      console.log('✅ Successfully updated S3 URL in existing row');
+    } else {
+      // Create new row with all data including S3 URL
+      console.log('📝 Creating new row with S3 URL...');
+      const newRow = [email, phone, '', timestamp, '', '', s3Url];
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SHEET_ID,
+        range: RANGE,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [newRow] },
+      });
+      console.log('✅ Successfully added S3 URL in new row');
+    }
+  } catch (error) {
+    console.error('❌ Failed to store S3 URL in Google Sheets:', error);
+    // Don't throw - let PDF upload succeed even if Sheets storage fails
+  }
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,19 +203,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'PDF generation failed - empty buffer' }, { status: 500 });
     }
     
-  await browser.close()
+        // Try uploading PDF to S3 if environment variables are set
+        const s3Bucket = process.env.S3_BUCKET;
+        const awsAccessKey = process.env.AWS_ACCESS_KEY_ID;
+        const awsSecret = process.env.AWS_SECRET_ACCESS_KEY;
+        const awsRegion = process.env.AWS_REGION || 'us-east-1';
+        const studentNameForKey = (results['Student Name'] || results.studentName || 'report').replace(/\s+/g, '-').toLowerCase();
+
+        console.log('🔍 S3 Config Check:');
+        console.log('  - S3_BUCKET:', s3Bucket ? '✓ Set' : '✗ Missing');
+        console.log('  - AWS_ACCESS_KEY_ID:', awsAccessKey ? '✓ Set' : '✗ Missing');
+        console.log('  - AWS_SECRET_ACCESS_KEY:', awsSecret ? '✓ Set' : '✗ Missing');
+        console.log('  - AWS_REGION:', awsRegion);
+
+        if (s3Bucket && awsAccessKey && awsSecret) {
+            try {
+                console.log('📤 Attempting S3 upload...');
+                // @ts-ignore - AWS SDK S3 is dynamically imported at runtime
+                const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+                const s3 = new S3Client({ region: awsRegion, credentials: { accessKeyId: awsAccessKey, secretAccessKey: awsSecret } });
+                const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
+
+                console.log('📦 Upload details:');
+                console.log('  - Bucket:', s3Bucket);
+                console.log('  - Key:', key);
+                console.log('  - PDF Size:', pdfBuffer.length, 'bytes');
+
+                await s3.send(new PutObjectCommand({
+                    Bucket: s3Bucket,
+                    Key: key,
+                    Body: pdfBuffer,
+                    ContentType: 'application/pdf'
+                }));
+
+                const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
+                console.log('✅ Successfully uploaded PDF to S3:', s3Url);
+                
+                // Store S3 URL in Google Sheets along with user details
+                const studentEmail = results['Student Email'] || results.studentEmail || results.userEmail || '';
+                const studentPhone = results['Student Phone'] || results.studentPhone || results.userPhone || '';
+                
+                if (studentEmail && studentPhone) {
+                  await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
+                } else {
+                  console.warn('⚠️  Email or phone missing - skipping Sheets storage');
+                }
+                
+                await browser.close();
+                return NextResponse.json({ s3Url, key }, { status: 200 });
+            } catch (uploadErr) {
+                console.error('❌ Failed to upload PDF to S3:');
+                console.error('  Error:', uploadErr instanceof Error ? uploadErr.message : String(uploadErr));
+                console.error('  Full error:', uploadErr);
+                // Fall through and return the PDF directly as a fallback
+            }
+        } else {
+            console.log('⚠️  S3 upload skipped - missing environment variables');
+        }
+
+        await browser.close()
     
-    console.log('📄 Returning PDF response with size:', pdfBuffer.length)
+        console.log('📄 Returning PDF response with size:', pdfBuffer.length)
     
-    // Return PDF as response - use Response constructor for binary data
-    return new Response(pdfBuffer as any, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Length': pdfBuffer.length.toString(),
-        'Content-Disposition': `attachment; filename="psychometric-report-${(results['Student Name'] || results.studentName).replace(/\s+/g, '-').toLowerCase()}.pdf"`
-      }
-    })
+        // Return PDF as response - use Response constructor for binary data
+        return new Response(pdfBuffer as any, {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Length': pdfBuffer.length.toString(),
+                'Content-Disposition': `attachment; filename="psychometric-report-${(results['Student Name'] || results.studentName).replace(/\s+/g, '-').toLowerCase()}.pdf"`
+            }
+        })
   } catch (error) {
     console.error('Error generating PDF:', error)
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 })
