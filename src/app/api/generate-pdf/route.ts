@@ -204,17 +204,17 @@ export async function POST(request: NextRequest) {
     }
     
         // Try uploading PDF to S3 if environment variables are set
-        const s3Bucket = process.env.S3_BUCKET;
-        const awsAccessKey = process.env.AWS_ACCESS_KEY_ID;
-        const awsSecret = process.env.AWS_SECRET_ACCESS_KEY;
-        const awsRegion = process.env.AWS_REGION || 'us-east-1';
+        // Support Amplify "Trojan Horse" env names (e.g. APP_AWS_ACCESS_KEY_ID)
+        // because Amplify reserves variables starting with AWS_. If you set
+        // APP_AWS_ACCESS_KEY_ID and APP_AWS_SECRET_ACCESS_KEY in Amplify,
+        // this code will use them as fallbacks.
+        const s3Bucket = process.env.S3_BUCKET ;
+        const awsAccessKey = process.env.APP_ACCESS_KEY_ID ;
+        const awsSecret = process.env.APP_SECRET_ACCESS_KEY ;
+        const awsRegion =  process.env.APP_REGION || 'ap-south-1';
         const studentNameForKey = (results['Student Name'] || results.studentName || 'report').replace(/\s+/g, '-').toLowerCase();
 
-        console.log('🔍 S3 Config Check:');
-        console.log('  - S3_BUCKET:', s3Bucket ? '✓ Set' : '✗ Missing');
-        console.log('  - AWS_ACCESS_KEY_ID:', awsAccessKey ? '✓ Set' : '✗ Missing');
-        console.log('  - AWS_SECRET_ACCESS_KEY:', awsSecret ? '✓ Set' : '✗ Missing');
-        console.log('  - AWS_REGION:', awsRegion);
+        
 
         if (s3Bucket && awsAccessKey && awsSecret) {
             try {
