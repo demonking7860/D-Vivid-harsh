@@ -51,7 +51,7 @@ const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) =
   try {
     console.log('📊 Attempting to store S3 URL in Google Sheets...');
     const sheets = await getSheetsClient();
-    
+
     // Get existing data to find matching row
     const getResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
@@ -60,7 +60,7 @@ const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) =
 
     const rows = getResponse.data.values || [];
     let rowIndex = -1;
-    
+
     // Find row with matching email
     for (let i = 1; i < rows.length; i++) {
       if (rows[i] && rows[i][0] === email) {
@@ -70,7 +70,7 @@ const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) =
     }
 
     const timestamp = new Date().toISOString();
-    
+
     if (rowIndex > 0) {
       // Update only column G (S3 URL) in existing row
       console.log(`📝 Updating row ${rowIndex} with S3 URL...`);
@@ -105,13 +105,13 @@ export async function POST(request: NextRequest) {
   try {
     const results = await request.json()
     console.log('📄 PDF Generation - Received data:', JSON.stringify(results, null, 2))
-    
+
     // Validate required fields
     if (!results['Student Name'] && !results.studentName) {
       console.error('❌ Missing Student Name in PDF data')
       return NextResponse.json({ error: 'Missing student name' }, { status: 400 })
     }
-    
+
     // Launch Chromium in a serverless-friendly way on Vercel, and use Puppeteer locally
     const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
     let browser: any
@@ -121,9 +121,9 @@ export async function POST(request: NextRequest) {
       const chromium = (await import('@sparticuz/chromium')).default
       const puppeteerCore = (await import('puppeteer-core')).default
 
-  // Prefer chromium's bundled executable path for serverless; fall back to env if needed
-  const chromiumPath = await chromium.executablePath()
-  const executablePath = chromiumPath || process.env.PUPPETEER_EXECUTABLE_PATH
+      // Prefer chromium's bundled executable path for serverless; fall back to env if needed
+      const chromiumPath = await chromium.executablePath()
+      const executablePath = chromiumPath || process.env.PUPPETEER_EXECUTABLE_PATH
 
       browser = await puppeteerCore.launch({
         args: chromium.args,
@@ -145,17 +145,17 @@ export async function POST(request: NextRequest) {
         timeout: 30000
       })
     }
-    
+
     const page = await browser.newPage()
-    
+
     // Set page timeout
     page.setDefaultTimeout(30000) // 30 second timeout
     page.setDefaultNavigationTimeout(30000)
-    
+
     // Generate HTML content for the PDF
     const htmlContent = generateHTMLContent(results)
     console.log('📄 Generated HTML content length:', htmlContent.length)
-    
+
     // Set viewport size to A4 dimensions
     await page.setViewport({
       width: 794, // A4 width in pixels at 96 DPI
@@ -166,114 +166,122 @@ export async function POST(request: NextRequest) {
     await page.emulateMediaType('print');
 
     // Set content with better wait conditions
-    await page.setContent(htmlContent, { 
+    await page.setContent(htmlContent, {
       waitUntil: ['domcontentloaded', 'networkidle0'],
-      timeout: 30000 
+      timeout: 30000
     });
 
     // Additional time for CSS animations and renders
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('📄 Page content loaded successfully');
-    
+
     // Wait for any dynamic content to load
     await new Promise(resolve => setTimeout(resolve, 3000))
-    
+
     // Generate PDF - no fallback, errors will be returned to user
     const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        preferCSSPageSize: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        },
-        timeout: 30000, // 30 second timeout for PDF generation
-        scale: 1.0, // Ensure 100% scale
-        landscape: false
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      },
+      timeout: 30000, // 30 second timeout for PDF generation
+      scale: 1.0, // Ensure 100% scale
+      landscape: false
     });
-    
+
     console.log('📄 PDF generated, buffer size:', pdfBuffer.length)
-    
+
     // Validate PDF buffer
     if (pdfBuffer.length === 0) {
       console.error('❌ PDF buffer is empty');
       await browser.close();
       return NextResponse.json({ error: 'PDF generation failed - empty buffer' }, { status: 500 });
     }
-    
-        // Try uploading PDF to S3 if environment variables are set
-        // Support Amplify "Trojan Horse" env names (e.g. APP_AWS_ACCESS_KEY_ID)
-        // because Amplify reserves variables starting with AWS_. If you set
-        // APP_AWS_ACCESS_KEY_ID and APP_AWS_SECRET_ACCESS_KEY in Amplify,
-        // this code will use them as fallbacks.
-        const s3Bucket = process.env.S3_BUCKET ;
-        const awsAccessKey = process.env.APP_ACCESS_KEY_ID ;
-        const awsSecret = process.env.APP_SECRET_ACCESS_KEY ;
-        const awsRegion =  process.env.APP_REGION || 'ap-south-1';
-        const studentNameForKey = (results['Student Name'] || results.studentName || 'report').replace(/\s+/g, '-').toLowerCase();
 
-        
+    // Try uploading PDF to S3 if environment variables are set
+    // Support Amplify "Trojan Horse" env names (e.g. APP_AWS_ACCESS_KEY_ID)
+    // because Amplify reserves variables starting with AWS_. If you set
+    // APP_AWS_ACCESS_KEY_ID and APP_AWS_SECRET_ACCESS_KEY in Amplify,
+    // this code will use them as fallbacks.
+    const s3Bucket = process.env.S3_BUCKET;
+    const awsAccessKey = process.env.APP_ACCESS_KEY_ID;
+    const awsSecret = process.env.APP_SECRET_ACCESS_KEY;
+    const awsRegion = process.env.APP_REGION || 'ap-south-1';
+    const studentNameForKey = (results['Student Name'] || results.studentName || 'report').replace(/\s+/g, '-').toLowerCase();
 
-        if (s3Bucket && awsAccessKey && awsSecret) {
-            try {
-                console.log('📤 Attempting S3 upload...');
-                // @ts-ignore - AWS SDK S3 is dynamically imported at runtime
-                const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-                const s3 = new S3Client({ region: awsRegion, credentials: { accessKeyId: awsAccessKey, secretAccessKey: awsSecret } });
-                const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
+    console.log('🔍 Debugging S3 Config:');
+    console.log(`  - Bucket: ${s3Bucket || 'UNDEFINED'}`);
+    console.log(`  - Region: ${awsRegion}`);
+    console.log(`  - Access Key: ${awsAccessKey ? '***PRESENT***' : 'MISSING'}`);
+    console.log(`  - Secret Key: ${awsSecret ? '***PRESENT***' : 'MISSING'}`);
 
-                console.log('📦 Upload details:');
-                console.log('  - Bucket:', s3Bucket);
-                console.log('  - Key:', key);
-                console.log('  - PDF Size:', pdfBuffer.length, 'bytes');
+    if (s3Bucket && awsAccessKey && awsSecret) {
+      try {
+        console.log('📤 Attempting S3 upload...');
+        // @ts-ignore - AWS SDK S3 is dynamically imported at runtime
+        const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: awsRegion, credentials: { accessKeyId: awsAccessKey, secretAccessKey: awsSecret } });
+        const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
 
-                await s3.send(new PutObjectCommand({
-                    Bucket: s3Bucket,
-                    Key: key,
-                    Body: pdfBuffer,
-                    ContentType: 'application/pdf'
-                }));
+        console.log('📦 Upload details:');
+        console.log('  - Bucket:', s3Bucket);
+        console.log('  - Key:', key);
+        console.log('  - PDF Size:', pdfBuffer.length, 'bytes');
 
-                const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
-                console.log('✅ Successfully uploaded PDF to S3:', s3Url);
-                
-                // Store S3 URL in Google Sheets along with user details
-                const studentEmail = results['Student Email'] || results.studentEmail || results.userEmail || '';
-                const studentPhone = results['Student Phone'] || results.studentPhone || results.userPhone || '';
-                
-                if (studentEmail && studentPhone) {
-                  await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
-                } else {
-                  console.warn('⚠️  Email or phone missing - skipping Sheets storage');
-                }
-                
-                await browser.close();
-                return NextResponse.json({ s3Url, key }, { status: 200 });
-            } catch (uploadErr) {
-                console.error('❌ Failed to upload PDF to S3:');
-                console.error('  Error:', uploadErr instanceof Error ? uploadErr.message : String(uploadErr));
-                console.error('  Full error:', uploadErr);
-                // Fall through and return the PDF directly as a fallback
-            }
+        await s3.send(new PutObjectCommand({
+          Bucket: s3Bucket,
+          Key: key,
+          Body: pdfBuffer,
+          ContentType: 'application/pdf'
+        }));
+
+        const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
+        console.log('✅ Successfully uploaded PDF to S3:', s3Url);
+
+        // Store S3 URL in Google Sheets along with user details
+        const studentEmail = results['Student Email'] || results.studentEmail || results.userEmail || '';
+        const studentPhone = results['Student Phone'] || results.studentPhone || results.userPhone || '';
+
+        if (studentEmail && studentPhone) {
+          await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
         } else {
-            console.log('⚠️  S3 upload skipped - missing environment variables');
+          console.warn('⚠️  Email or phone missing - skipping Sheets storage');
         }
 
-        await browser.close()
-    
-        console.log('📄 Returning PDF response with size:', pdfBuffer.length)
-    
-        // Return PDF as response - use Response constructor for binary data
-        return new Response(pdfBuffer as any, {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Length': pdfBuffer.length.toString(),
-                'Content-Disposition': `attachment; filename="psychometric-report-${(results['Student Name'] || results.studentName).replace(/\s+/g, '-').toLowerCase()}.pdf"`
-            }
-        })
+        await browser.close();
+        return NextResponse.json({ s3Url, key }, { status: 200 });
+      } catch (uploadErr) {
+        console.error('❌ Failed to upload PDF to S3:');
+        console.error('  Error Name:', (uploadErr as any).name);
+        console.error('  Error Message:', (uploadErr as any).message);
+        console.error('  Full Error Object:', JSON.stringify(uploadErr, null, 2));
+        // Fall through and return the PDF directly as a fallback
+      }
+    } else {
+      console.log('⚠️  S3 upload skipped - missing environment variables');
+      console.log(`  - Bucket: ${s3Bucket}`);
+      console.log(`  - Access Key: ${awsAccessKey ? '***PRESENT***' : 'MISSING'}`);
+      console.log(`  - Secret Key: ${awsSecret ? '***PRESENT***' : 'MISSING'}`);
+    }
+
+    await browser.close()
+
+    console.log('📄 Returning PDF response with size:', pdfBuffer.length)
+
+    // Return PDF as response - use Response constructor for binary data
+    return new Response(pdfBuffer as any, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Disposition': `attachment; filename="psychometric-report-${(results['Student Name'] || results.studentName).replace(/\s+/g, '-').toLowerCase()}.pdf"`
+      }
+    })
   } catch (error) {
     console.error('Error generating PDF:', error)
     return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 })
@@ -291,18 +299,18 @@ function generateHTMLContent(results: any): string {
   const studentName = results['Student Name'] || results.studentName;
   const studentEmail = results['Student Email'] || results.studentEmail || results.userEmail || '';
   const studentPhone = results['Student Phone'] || results.studentPhone || results.userPhone || '';
-  
+
   // Validate required fields
   if (!studentName) {
     throw new Error('Student Name is required');
   }
-  
+
   // Get scores object - validate it exists
   const scoresRaw = results.scores || results.Scores || results['Scores'];
   if (!scoresRaw) {
     throw new Error('Scores data is required');
   }
-  
+
   // Helper function to parse scores and ensure they are numbers
   const parseScore = (score: any): number => {
     if (typeof score === 'number') return Math.round(score);
@@ -314,7 +322,7 @@ function generateHTMLContent(results: any): string {
     }
     return 0;
   };
-  
+
   // Extract individual scores with parsing
   const scores = {
     'Financial Planning': parseScore(scoresRaw['Financial Planning']),
@@ -324,34 +332,34 @@ function generateHTMLContent(results: any): string {
     'Practical Readiness': parseScore(scoresRaw['Practical Readiness']),
     'Support System': parseScore(scoresRaw['Support System'])
   };
-  
+
   // Validate required scores exist and parse Overall Index
   const overallIndexRaw = results['Overall Readiness Index'] || results.overallIndex;
   if (overallIndexRaw === undefined) {
     throw new Error('Overall Readiness Index is required');
   }
   const overallIndex = parseScore(overallIndexRaw);
-  
+
   const readinessLevel = results['Readiness Level'] || results.readinessLevel;
   if (!readinessLevel) {
     throw new Error('Readiness Level is required');
   }
-  
+
   const strengths = results.Strengths;
   if (!strengths) {
     throw new Error('Strengths analysis is required');
   }
-  
+
   const gaps = results.Gaps;
   if (!gaps) {
     throw new Error('Gaps analysis is required');
   }
-  
+
   const recommendations = results.Recommendations;
   if (!recommendations) {
     throw new Error('Recommendations are required');
   }
-  
+
   const countryFit = results['Country Fit (Top 3)'] || [];
 
   // Helper to format text into bullet points
@@ -404,13 +412,13 @@ function generateHTMLContent(results: any): string {
       <path d="M20 6L9 17L4 12" stroke="#2ECC71" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
   };
-  
+
   const generateWarningIcon = () => {
     return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#F1C40F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
   };
-  
+
   const generateArrowIcon = () => {
     return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#0066CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -428,9 +436,9 @@ function generateHTMLContent(results: any): string {
     } else {
       cleanScore = 0;
     }
-    
+
     const barClass = cleanScore >= 80 ? 'excellent' : cleanScore >= 60 ? 'good' : cleanScore >= 40 ? 'average' : 'weak';
-    
+
     return `
       <div class="score-card">
         <h4>${label}</h4>
@@ -449,10 +457,10 @@ function generateHTMLContent(results: any): string {
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (score / 100) * circumference;
     const center = size / 2;
-    
+
     // Determine color based on score
     const color = score >= 80 ? '#2ECC71' : score >= 60 ? '#2ECC71' : score >= 40 ? '#F1C40F' : '#ef4444';
-    
+
     return `
       <div class="circular-progress-container">
         <svg class="circular-progress-chart" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
@@ -495,33 +503,33 @@ function generateHTMLContent(results: any): string {
       { name: 'Practical Readiness', short: 'Practical', icon: '⚙️', score: parseScore(scores['Practical Readiness']), color: '#f59e0b' },
       { name: 'Support System', short: 'Support', icon: '🤝', score: parseScore(scores['Support System']), color: '#06b6d4' }
     ];
-    
+
     // Generate SVG radar chart - smaller size to fit with score cards on one page
     const size = 350; // Reduced size to fit with score cards
     const centerX = size / 2;
     const centerY = size / 2;
     const radius = size * 0.32; // Adjusted radius
     const angleStep = (2 * Math.PI) / categories.length;
-    
+
     // Calculate points for radar polygon with individual colors per segment
     const polygonSegments = categories.map((cat, index) => {
       const angle = (index * angleStep) - Math.PI / 2;
       const nextAngle = ((index + 1) % categories.length) * angleStep - Math.PI / 2;
       const distance = (cat.score / 100) * radius;
       const nextDistance = (categories[(index + 1) % categories.length].score / 100) * radius;
-      
+
       const x1 = centerX + Math.cos(angle) * distance;
       const y1 = centerY + Math.sin(angle) * distance;
       const x2 = centerX + Math.cos(nextAngle) * nextDistance;
       const y2 = centerY + Math.sin(nextAngle) * nextDistance;
-      
+
       return `<polygon points="${centerX},${centerY} ${x1},${y1} ${x2},${y2}" 
                         fill="${cat.color}" 
                         fill-opacity="0.15" 
                         stroke="${cat.color}" 
                         stroke-width="2"/>`;
     }).join('');
-    
+
     // Calculate points for main radar polygon
     const points = categories.map((cat, index) => {
       const angle = (index * angleStep) - Math.PI / 2;
@@ -530,7 +538,7 @@ function generateHTMLContent(results: any): string {
       const y = centerY + Math.sin(angle) * distance;
       return `${x},${y}`;
     }).join(' ');
-    
+
     // Generate axis lines and labels
     const axes = categories.map((cat, index) => {
       const angle = (index * angleStep) - Math.PI / 2;
@@ -538,7 +546,7 @@ function generateHTMLContent(results: any): string {
       const y = centerY + Math.sin(angle) * radius;
       const labelX = centerX + Math.cos(angle) * (radius + 35);
       const labelY = centerY + Math.sin(angle) * (radius + 35);
-      
+
       return `
         <line x1="${centerX}" y1="${centerY}" x2="${x}" y2="${y}" 
               stroke="${cat.color}" stroke-width="2" opacity="0.5"/>
@@ -546,18 +554,18 @@ function generateHTMLContent(results: any): string {
               font-size="12" font-weight="700" fill="${cat.color}" font-family="Poppins, sans-serif">${cat.short}</text>
       `;
     }).join('');
-    
+
     // Generate concentric circles for scale
     const circles = [0.25, 0.5, 0.75, 1].map(scale => {
       const r = radius * scale;
       return `<circle cx="${centerX}" cy="${centerY}" r="${r}" 
                       fill="none" stroke="#e5e7eb" stroke-width="1.5" opacity="0.4"/>`;
     }).join('');
-    
+
     // Determine overall fill color based on average score
     const avgScore = categories.reduce((sum, cat) => sum + cat.score, 0) / categories.length;
     const overallColor = avgScore >= 80 ? '#2ECC71' : avgScore >= 60 ? '#2ECC71' : avgScore >= 40 ? '#F1C40F' : '#ef4444';
-    
+
     return `
       <div class="radar-chart-full-page">
         <svg class="radar-chart-svg-full" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
@@ -570,12 +578,12 @@ function generateHTMLContent(results: any): string {
                    stroke="${overallColor}" 
                    stroke-width="4"/>
           ${categories.map((cat, index) => {
-            const angle = (index * angleStep) - Math.PI / 2;
-            const distance = (cat.score / 100) * radius;
-            const x = centerX + Math.cos(angle) * distance;
-            const y = centerY + Math.sin(angle) * distance;
-            return `<circle cx="${x}" cy="${y}" r="8" fill="${cat.color}" stroke="white" stroke-width="2.5"/>`;
-          }).join('')}
+      const angle = (index * angleStep) - Math.PI / 2;
+      const distance = (cat.score / 100) * radius;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      return `<circle cx="${x}" cy="${y}" r="8" fill="${cat.color}" stroke="white" stroke-width="2.5"/>`;
+    }).join('')}
         </svg>
         <div class="radar-legend-enhanced">
           ${categories.map(category => `
@@ -601,7 +609,7 @@ function generateHTMLContent(results: any): string {
       { name: 'Practical', score: parseScore(scores['Practical Readiness']) },
       { name: 'Support', score: parseScore(scores['Support System']) }
     ];
-    
+
     return categories.map(category => `
       <div class="trend-bar">
         <div class="trend-label">${category.name}</div>
@@ -616,18 +624,18 @@ function generateHTMLContent(results: any): string {
   // Helper to format description text into bullet points for country matrix
   const formatDescriptionToBullets = (text: string): string => {
     if (!text) return '<div class="country-matrix-text"><ul class="country-bullet-list"><li>Good study destination</li></ul></div>';
-    
+
     // Clean up the text
     const cleanedText = text
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
-    
+
     // Split into sentences - each sentence becomes its own bullet point
     const sentences = cleanedText.split(/[.!?]+/)
       .map(s => s.trim())
       .filter(s => s.length > 0 && !s.match(/^\s*$/))
       .filter(s => s.length > 10); // Filter out very short fragments
-    
+
     // If sentences are too long, split further by commas or conjunctions
     const bulletPoints: string[] = [];
     sentences.forEach(sentence => {
@@ -646,7 +654,7 @@ function generateHTMLContent(results: any): string {
         bulletPoints.push(sentence + (sentence.endsWith('.') ? '' : '.'));
       }
     });
-    
+
     // Ensure we have at least one bullet
     if (bulletPoints.length === 0) {
       // Split by commas if no sentences found
@@ -657,10 +665,10 @@ function generateHTMLContent(results: any): string {
         bulletPoints.push(cleanedText);
       }
     }
-    
+
     // Limit to 4-5 bullets max for readability
     const finalBullets = bulletPoints.slice(0, 5);
-    
+
     return `
       <ul class="country-bullet-list">
         ${finalBullets.map(point => `<li class="country-bullet-item">${point}</li>`).join('')}
@@ -672,7 +680,7 @@ function generateHTMLContent(results: any): string {
   const extractCountryMetrics = (description: string, country: string) => {
     const lowerDesc = description.toLowerCase();
     const lowerCountry = country.toLowerCase();
-    
+
     // Determine tuition level
     let tuition = 'Moderate';
     if (lowerDesc.includes('affordable') || lowerDesc.includes('lower cost') || lowerDesc.includes('moderate cost') || lowerCountry.includes('ireland') || lowerCountry.includes('germany')) {
@@ -680,7 +688,7 @@ function generateHTMLContent(results: any): string {
     } else if (lowerDesc.includes('expensive') || lowerDesc.includes('high cost') || lowerDesc.includes('higher tuition') || lowerCountry.includes('usa') || lowerCountry.includes('uk')) {
       tuition = 'Higher';
     }
-    
+
     // Determine community strength
     let community = 'Moderate';
     if (lowerDesc.includes('strong indian') || lowerDesc.includes('large indian') || lowerDesc.includes('indian diaspora') || lowerDesc.includes('welcoming') || lowerCountry.includes('canada') || lowerCountry.includes('uk') || lowerCountry.includes('australia')) {
@@ -688,7 +696,7 @@ function generateHTMLContent(results: any): string {
     } else if (lowerDesc.includes('limited') || lowerDesc.includes('small')) {
       community = 'Growing';
     }
-    
+
     // Determine support level
     let support = 'Good';
     if (lowerDesc.includes('excellent support') || lowerDesc.includes('robust support') || lowerDesc.includes('strong support') || lowerDesc.includes('extensive support')) {
@@ -696,7 +704,7 @@ function generateHTMLContent(results: any): string {
     } else if (lowerDesc.includes('limited support') || lowerDesc.includes('basic support')) {
       support = 'Basic';
     }
-    
+
     // Determine language
     let language = 'English';
     if (lowerDesc.includes('french') || lowerCountry.includes('france') || lowerCountry.includes('canada') && lowerDesc.includes('bilingual')) {
@@ -706,7 +714,7 @@ function generateHTMLContent(results: any): string {
     } else if (lowerDesc.includes('spanish') || lowerCountry.includes('spain')) {
       language = 'Spanish/English';
     }
-    
+
     return { tuition, community, support, language };
   };
 
@@ -724,31 +732,31 @@ function generateHTMLContent(results: any): string {
   // Helper to generate country cards grid
   const generateCountryCardsGrid = (countries: any[]) => {
     if (!countries || countries.length === 0) return '';
-    
+
     return countries.map((countryData, index) => {
       const country = typeof countryData === 'string' ? countryData : countryData.country;
       const matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : parseScore(countryData.match || 100);
       const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
       const challenges = typeof countryData === 'object' ? countryData.challenges : '';
-      
+
       // Load country flag
       const countryFlag = loadCountryFlagSVG(country);
-      
+
       // Extract metrics
       const metrics = extractCountryMetrics(description, country);
-      
+
       // Get rank badge
       const rankBadge = getRankBadge(index);
-      
+
       // Determine match strength
       const matchStrength = matchScore >= 80 ? 'Strong Fit' : matchScore >= 70 ? 'Good Fit' : matchScore >= 60 ? 'Moderate Fit' : 'Fair Fit';
-      
-    // Get fit summary (first sentence from description) - do not truncate to avoid abrupt cutoffs
-    const fitSummary = description.split('.')[0];
-      
+
+      // Get fit summary (first sentence from description) - do not truncate to avoid abrupt cutoffs
+      const fitSummary = description.split('.')[0];
+
       // Determine progress bar color
       const progressColor = matchScore >= 80 ? '#2ECC71' : matchScore >= 70 ? '#F1C40F' : '#0066CC';
-      
+
       return `
         <div class="country-card-grid">
           <!-- Rank Badge -->
@@ -840,13 +848,13 @@ function generateHTMLContent(results: any): string {
       let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
       matchScore = parseScore(matchScore); // Ensure it's a number
       const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
-      
+
       // Load the country flag SVG
       const countryFlag = loadCountryFlagSVG(country);
-      
+
       // Format description as bullet points
       const descriptionBullets = formatDescriptionToBullets(description);
-      
+
       return `
         <div class="country-matrix-item">
           <div class="country-matrix-rank">#${index + 1}</div>
@@ -958,9 +966,9 @@ function generateHTMLContent(results: any): string {
       normalizedCountry.toLowerCase().includes(key.toLowerCase()) ||
       key.toLowerCase().includes(normalizedCountry.toLowerCase())
     );
-    
+
     const code = countryCode ? countryToCodeMap[countryCode] : null;
-    
+
     // If no code found, try to extract first two letters as fallback code
     if (!code) {
       // Try to find a match by checking if any country name starts with the normalized country
@@ -969,13 +977,13 @@ function generateHTMLContent(results: any): string {
         key.toLowerCase().startsWith(normalizedCountry.toLowerCase())
       );
       const finalCode = partialMatch ? countryToCodeMap[partialMatch] : null;
-      
+
       if (!finalCode) {
         // Fallback: use first two letters as country code
         const fallbackCode = normalizedCountry.substring(0, 2).toLowerCase();
         return `<svg width="90" height="60" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${fallbackCode.toUpperCase()}</text></svg>`;
       }
-      
+
       // Use the partial match code
       const svgPath = path.join(process.cwd(), 'svg', `${finalCode}.svg`);
       if (fs.existsSync(svgPath)) {
@@ -989,7 +997,7 @@ function generateHTMLContent(results: any): string {
           console.error(`Error loading SVG for ${countryName}:`, error);
         }
       }
-      
+
       // Final fallback
       return `<svg width="70" height="45" viewBox="0 0 100 60" class="country-map" preserveAspectRatio="xMidYMid meet"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${normalizedCountry.substring(0, 2).toUpperCase()}</text></svg>`;
     }
@@ -997,19 +1005,19 @@ function generateHTMLContent(results: any): string {
     try {
       // Get the SVG file path - adjust path based on execution context
       const svgPath = path.join(process.cwd(), 'svg', `${code}.svg`);
-      
+
       // Read SVG file
       if (fs.existsSync(svgPath)) {
         const svgContent = fs.readFileSync(svgPath, 'utf-8');
         // Clean the SVG content and add class, width, height for styling
         // Ensure width and height are set for consistent PDF rendering
         let cleanedSVG = svgContent.trim();
-        
+
         // Remove existing width/height attributes if present, then add our own
         cleanedSVG = cleanedSVG.replace(/\s+width="[^"]*"/gi, '');
         cleanedSVG = cleanedSVG.replace(/\s+height="[^"]*"/gi, '');
         cleanedSVG = cleanedSVG.replace(/<svg([^>]*)>/, `<svg width="90" height="60" $1 class="country-map" preserveAspectRatio="xMidYMid meet">`);
-        
+
         // Return the SVG directly embedded in HTML
         return cleanedSVG;
       } else {
@@ -1067,7 +1075,7 @@ function generateHTMLContent(results: any): string {
           const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.avif' ? 'image/avif' : 'application/octet-stream';
           return `data:${mime};base64,${buf.toString('base64')}`;
         }
-      } catch {}
+      } catch { }
     }
     return null;
   };
@@ -1080,10 +1088,10 @@ function generateHTMLContent(results: any): string {
     let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
     matchScore = parseScore(matchScore); // Ensure it's a number
     const universities = typeof countryData === 'object' ? countryData.universities : '';
-    
+
     // Load the actual SVG flag from file
     const countryMap = loadCountryFlagSVG(country);
-    
+
     // OLD CODE REMOVED - now using SVG files from svg folder
     const countryMaps_DEPRECATED: { [key: string]: string } = {
       'Singapore': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#e74c3c" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SG</text></svg>`,
@@ -1097,9 +1105,9 @@ function generateHTMLContent(results: any): string {
       'India': `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="20" fill="#ff9933"/><rect y="20" width="100" height="20" fill="white"/><rect y="40" width="100" height="20" fill="#138808"/><circle cx="50" cy="30" r="8" fill="none" stroke="#000080" stroke-width="1"/><text x="50" y="35" text-anchor="middle" fill="#000080" font-size="8" font-weight="bold">☸</text></svg>`,
       'United Arab Emirates': `<svg viewBox="0 0 100 60" class="country-map"><rect width="25" height="60" fill="#ce1126"/><rect x="25" width="75" height="20" fill="#009639"/><rect x="25" y="20" width="75" height="20" fill="white"/><rect x="25" y="40" width="75" height="20" fill="#000000"/><text x="60" y="35" text-anchor="middle" fill="red" font-size="10" font-weight="bold">AE</text></svg>`
     };
-    
+
     // const countryMap = countryMaps_DEPRECATED[country] || `<svg viewBox="0 0 100 60" class="country-map"><rect width="100" height="60" fill="#3498db" rx="8"/><text x="50" y="35" text-anchor="middle" fill="white" font-size="10" font-weight="bold">🌍</text></svg>`;
-    
+
     return `
       <div class="country-card">
         <div class="country-rank">#${index + 1}</div>
