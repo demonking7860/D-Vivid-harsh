@@ -209,65 +209,79 @@ export async function POST(request: NextRequest) {
     // APP_AWS_ACCESS_KEY_ID and APP_AWS_SECRET_ACCESS_KEY in Amplify,
     // this code will use them as fallbacks.
     const s3Bucket = process.env.S3_BUCKET;
-    const awsAccessKey = process.env.APP_ACCESS_KEY_ID;
-    const awsSecret = process.env.APP_SECRET_ACCESS_KEY;
+    
     const awsRegion = process.env.APP_REGION || 'ap-south-1';
     const studentNameForKey = (results['Student Name'] || results.studentName || 'report').replace(/\s+/g, '-').toLowerCase();
 
     console.log('🔍 Debugging S3 Config:');
     console.log(`  - Bucket: ${s3Bucket || 'UNDEFINED'}`);
     console.log(`  - Region: ${awsRegion}`);
-    console.log(`  - Access Key: ${awsAccessKey ? '***PRESENT***' : 'MISSING'}`);
-    console.log(`  - Secret Key: ${awsSecret ? '***PRESENT***' : 'MISSING'}`);
+    
+if (s3Bucket) {
+  try {
+    console.log("📤 Attempting S3 upload...");
 
-    if (s3Bucket && awsAccessKey && awsSecret) {
-      try {
-        console.log('📤 Attempting S3 upload...');
-        // @ts-ignore - AWS SDK S3 is dynamically imported at runtime
-        const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: awsRegion, credentials: { accessKeyId: awsAccessKey, secretAccessKey: awsSecret } });
-        const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
+    // IAM-based S3 client (Amplify SSR injects temporary credentials)
+    const AWS = await import("aws-sdk");
+    const s3 = new AWS.S3({
+      region: awsRegion,
+    });
 
-        console.log('📦 Upload details:');
-        console.log('  - Bucket:', s3Bucket);
-        console.log('  - Key:', key);
-        console.log('  - PDF Size:', pdfBuffer.length, 'bytes');
+    const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
 
-        await s3.send(new PutObjectCommand({
-          Bucket: s3Bucket,
-          Key: key,
-          Body: pdfBuffer,
-          ContentType: 'application/pdf'
-        }));
+    console.log("📦 Upload details:");
+    console.log("  - Bucket:", s3Bucket);
+    console.log("  - Key:", key);
+    console.log("  - PDF Size:", pdfBuffer.length, "bytes");
 
-        const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
-        console.log('✅ Successfully uploaded PDF to S3:', s3Url);
+    // Upload the PDF
+    await s3
+      .putObject({
+        Bucket: s3Bucket,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: "application/pdf",
+      })
+      .promise();
 
-        // Store S3 URL in Google Sheets along with user details
-        const studentEmail = results['Student Email'] || results.studentEmail || results.userEmail || '';
-        const studentPhone = results['Student Phone'] || results.studentPhone || results.userPhone || '';
+    const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
+    console.log("✅ Successfully uploaded PDF to S3:", s3Url);
 
-        if (studentEmail && studentPhone) {
-          await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
-        } else {
-          console.warn('⚠️  Email or phone missing - skipping Sheets storage');
-        }
+    // Store S3 URL in Google Sheets along with user details
+    const studentEmail =
+      results["Student Email"] ||
+      results.studentEmail ||
+      results.userEmail ||
+      "";
+    const studentPhone =
+      results["Student Phone"] ||
+      results.studentPhone ||
+      results.userPhone ||
+      "";
 
-        await browser.close();
-        return NextResponse.json({ s3Url, key }, { status: 200 });
-      } catch (uploadErr) {
-        console.error('❌ Failed to upload PDF to S3:');
-        console.error('  Error Name:', (uploadErr as any).name);
-        console.error('  Error Message:', (uploadErr as any).message);
-        console.error('  Full Error Object:', JSON.stringify(uploadErr, null, 2));
-        // Fall through and return the PDF directly as a fallback
-      }
+    if (studentEmail && studentPhone) {
+      await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
     } else {
-      console.log('⚠️  S3 upload skipped - missing environment variables');
-      console.log(`  - Bucket: ${s3Bucket}`);
-      console.log(`  - Access Key: ${awsAccessKey ? '***PRESENT***' : 'MISSING'}`);
-      console.log(`  - Secret Key: ${awsSecret ? '***PRESENT***' : 'MISSING'}`);
+      console.warn("⚠️ Email or phone missing - skipping Sheets storage");
     }
+
+    await browser.close();
+    return NextResponse.json({ s3Url, key }, { status: 200 });
+  } catch (uploadErr) {
+    console.error("❌ Failed to upload PDF to S3:");
+    console.error("  Error Name:", (uploadErr as any).name);
+    console.error("  Error Message:", (uploadErr as any).message);
+    console.error(
+      "  Full Error Object:",
+      JSON.stringify(uploadErr, null, 2)
+    );
+    // fall back to returning the PDF response
+  }
+} else {
+  console.log("⚠️ S3 upload skipped - missing S3_BUCKET");
+  console.log(`  - Bucket: ${s3Bucket}`);
+}
+
 
     await browser.close()
 
