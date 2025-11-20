@@ -8,11 +8,12 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Container from "../global/container";
 import { useState, useEffect } from "react";
-import ConsultationCard from "./consultation-card";
+
+import dynamic from "next/dynamic";
 
 const expertise = [
     "Profile Evaluation",
-    "University & Course Selection", 
+    "University & Course Selection",
     "Test Preparation",
     "University Application",
     "Visa Interview Preparation",
@@ -24,10 +25,10 @@ const TypewriterEffect = () => {
     const [index, setIndex] = useState(0);
     const [wordIndex, setWordIndex] = useState(0);
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     useEffect(() => {
         const currentWord = expertise[wordIndex];
-        
+
         const timer = setTimeout(() => {
             if (!isDeleting && index < currentWord.length) {
                 setText(currentWord.substring(0, index + 1));
@@ -42,10 +43,10 @@ const TypewriterEffect = () => {
                 setWordIndex((wordIndex + 1) % expertise.length);
             }
         }, isDeleting ? 50 : 100);
-        
+
         return () => clearTimeout(timer);
-    });
-    
+    }, [index, isDeleting, wordIndex]);
+
     return (
         <span className="text-purple-400">
             {text}
@@ -57,11 +58,11 @@ const TypewriterEffect = () => {
 const YouTubeVideoPlayer = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const videoId = "6WFdYcyOlPc"; // Extracted from the YouTube URL
-    
+
     const togglePlay = () => {
         setIsPlaying(!isPlaying);
     };
-    
+
     if (!isPlaying) {
         return (
             <div className="relative cursor-pointer group" onClick={togglePlay}>
@@ -81,7 +82,7 @@ const YouTubeVideoPlayer = () => {
             </div>
         );
     }
-    
+
     return (
         <div className="relative">
             <iframe
@@ -103,6 +104,11 @@ const YouTubeVideoPlayer = () => {
         </div>
     );
 };
+
+const ConsultationCard = dynamic(() => import("./consultation-card"), {
+    ssr: false,
+    loading: () => null,
+});
 
 const Hero = () => {
     const [openConsultation, setOpenConsultation] = useState(false);

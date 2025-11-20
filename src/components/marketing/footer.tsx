@@ -4,9 +4,17 @@ import Container from "../global/container";
 import Icons from "../global/icons";
 import Wrapper from "../global/wrapper";
 import { Button } from "../ui/button";
-import { Particles } from "../ui/particles";
-import { BackgroundBeams } from "../ui/background-beams";
+import dynamic from "next/dynamic";
 import { Facebook, Linkedin, Youtube } from "lucide-react";
+
+const Particles = dynamic(() => import("../ui/particles").then((mod) => mod.Particles), {
+    ssr: false,
+    loading: () => null,
+});
+const BackgroundBeams = dynamic(() => import("../ui/background-beams").then((mod) => mod.BackgroundBeams), {
+    ssr: false,
+    loading: () => null,
+});
 
 const Footer = () => {
     return (
@@ -14,10 +22,10 @@ const Footer = () => {
             <Container>
                 <Wrapper className="relative pb-10 overflow-hidden footer">
                     <BackgroundBeams className="absolute inset-0 w-full z-0" />
-                    
+
                     {/* Main Footer Content */}
                     <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
-                        
+
                         {/* Company Info */}
                         <div className="lg:col-span-2">
                             <div className="flex items-center gap-2 mb-4">
@@ -45,7 +53,7 @@ const Footer = () => {
                                 <ul className="space-y-3">
                                     {section.links.map((link, linkIndex) => (
                                         <li key={linkIndex}>
-                                            <Link 
+                                            <Link
                                                 href={link.href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -64,12 +72,12 @@ const Footer = () => {
                     <div id="contact" className="relative z-10 border-t border-border pt-8 mb-8">
                         <h4 className="text-lg font-semibold mb-6 text-foreground">Contact Us</h4>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            
+
                             {/* Ahmedabad Offices */}
                             <div>
                                 <h5 className="text-base font-medium mb-4 text-foreground">Ahmedabad Offices:</h5>
                                 <div className="space-y-4 text-sm text-muted-foreground">
-                                    <a 
+                                    <a
                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy/@23.009787,72.5064509,15z/data=!4m2!3m1!1s0x0:0x23f80d41827bdd5a?sa=X&ved=2ahUKEwjPrK21wIKEAxUcTmwGHZ_BBAkQ_BJ6BAgQEAA&hl=en-IN"
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -77,7 +85,7 @@ const Footer = () => {
                                     >
                                         B-3, 2nd Floor, Safal Profitaire, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015
                                     </a>
-                                    <a 
+                                    <a
                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy/@23.0500363,72.672839,15z/data=!4m6!3m5!1s0x395e873967e2af39:0xe73720094b49a4e8!8m2!3d23.0500363!4d72.672839!16s%2Fg%2F11l2cpybfq?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -85,7 +93,7 @@ const Footer = () => {
                                     >
                                         401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350
                                     </a>
-                                    <a 
+                                    <a
                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy+Maninagar+Ahmedabad/@23.0020052,72.5992021,15z/data=!4m6!3m5!1s0x395e8555d18bfad5:0xbaf30bccdd4eeaa0!8m2!3d23.0020052!4d72.5992021!16s%2Fg%2F11vc2ywcbv?hl=en-IN&entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -100,7 +108,7 @@ const Footer = () => {
                             <div>
                                 <h5 className="text-base font-medium mb-4 text-foreground">Surat Offices:</h5>
                                 <div className="space-y-4 text-sm text-muted-foreground">
-                                    <a 
+                                    <a
                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+Surat+%7C+Study+abroad+consultant+%7C+Katargam/@21.2322842,72.834286,17z/data=!4m6!3m5!1s0x3be04f8f66a71d81:0x2921c494c87dce14!8m2!3d21.2322792!4d72.8368609!16s%2Fg%2F11vywsvvrr?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -108,7 +116,7 @@ const Footer = () => {
                                     >
                                         531, Laxmi Enclave -2, opp. Gajera International School, Katargam
                                     </a>
-                                    <a 
+                                    <a
                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+Mota+Varachha/@21.2379804,72.8888158,17z/data=!4m6!3m5!1s0x3be04fa3a01e4843:0xa8e298543970846a!8m2!3d21.2379804!4d72.8888158!16s%2Fg%2F11pysdntj0?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -119,7 +127,7 @@ const Footer = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Contact Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                             <div>
@@ -127,8 +135,8 @@ const Footer = () => {
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm font-medium text-foreground">Email:</span>
-                                        <a 
-                                            href="mailto:info@dvividconsultant.com" 
+                                        <a
+                                            href="mailto:info@dvividconsultant.com"
                                             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             info@dvividconsultant.com
@@ -136,8 +144,8 @@ const Footer = () => {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm font-medium text-foreground">Phone:</span>
-                                        <a 
-                                            href="tel:+917575020920" 
+                                        <a
+                                            href="tel:+917575020920"
                                             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             +91 7575020920

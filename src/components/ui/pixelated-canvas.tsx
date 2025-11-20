@@ -108,17 +108,70 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
   const pointerInsideRef = React.useRef<boolean>(false);
   const activityRef = React.useRef<number>(0);
   const activityTargetRef = React.useRef<number>(0);
+  const isVisibleRef = React.useRef(true);
+  const animateRef = React.useRef<() => void>(() => { });
+
+  // Intersection Observer to pause animation when off-screen
+  React.useEffect(() => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Resume animation if it was paused
+            if (!rafRef.current) {
+              // The animation loop handles its own rAF, but we need to trigger it if it stopped.
+              // However, the current implementation doesn't easily support "resuming" without re-triggering the whole setup 
+              // or modifying the animate function to check a flag.
+              // Let's use a ref to control the animation loop execution.
+              isVisibleRef.current = true;
+              if (!rafRef.current) {
+                lastFrameRef.current = performance.now();
+                rafRef.current = requestAnimationFrame(animateRef.current);
+              }
+            }
+          } else {
+            // Pause animation
+            isVisibleRef.current = false;
+            if (rafRef.current) {
+              cancelAnimationFrame(rafRef.current);
+              rafRef.current = null;
+            }
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(canvasEl);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // We need to lift the animate function out or use a ref to access it in the observer effect.
+  // Since the original code has `animate` inside the main useEffect, let's modify that structure slightly.
+  // Actually, it's cleaner to just add a `paused` check inside the `animate` function and let the loop continue but do nothing, 
+  // OR properly cancel/restart. 
+  // Given the complexity of the existing useEffect, let's try to be minimally invasive.
+
+
 
   React.useEffect(() => {
     let isCancelled = false;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // ... (existing image loading code) ...
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
 
     const compute = () => {
+      // ... (existing compute code) ...
       if (!canvas) return;
       const dpr =
         typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -325,6 +378,7 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
       if (!canvasEl) return;
 
       if (!interactive) {
+        // ... (existing non-interactive code) ...
         const ctx = canvasEl.getContext("2d");
         const dims = dimsRef.current;
         const samples = samplesRef.current;
@@ -388,6 +442,12 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
       canvasEl.addEventListener("pointerleave", onPointerLeave);
 
       const animate = () => {
+        animateRef.current = animate;
+        if (!isVisibleRef.current) {
+          rafRef.current = requestAnimationFrame(animate);
+          return;
+        }
+
         const now = performance.now();
         const minDelta = 1000 / Math.max(1, maxFps);
         if (now - lastFrameRef.current < minDelta) {
@@ -549,6 +609,27 @@ export const PixelatedCanvas: React.FC<PixelatedCanvasProps> = ({
     fadeOnLeave,
     fadeSpeed,
   ]);
+
+  // Intersection Observer to pause animation when off-screen
+  React.useEffect(() => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl || !interactive) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isVisibleRef.current = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(canvasEl);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [interactive]);
 
   return (
     <canvas
