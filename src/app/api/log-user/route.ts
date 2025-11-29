@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
 interface UserData {
+  name: string;
   email: string;
   phone: string;
   surveyType: string;
@@ -15,7 +16,7 @@ interface UserData {
 // ✅ Directly hardcode your Google Sheet ID (safe – not secret)
 const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U";
 
-const RANGE = 'Sheet1!A:G'; // Columns: Email, Phone, Survey Type, Timestamp, Lead Generated, Contacted, Notes
+const RANGE = 'Sheet1!A:H'; // Columns: Email, Phone, Name, Survey Type, Timestamp, Lead Generated, Contacted, Notes
 
 // Parse service account credentials from environment variable
 const getServiceAccountAuth = () => {
@@ -59,7 +60,7 @@ const getSheetsClient = async () => {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, phone, surveyType } = await request.json();
+    const { name, email, phone, surveyType } = await request.json();
 
     // Validation
     if (!email || !phone) {
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
     const newRow = [
       email,
       phone,
+      name || '',
       surveyType || 'Unknown',
       timestamp,
       '', // Lead Generated
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
       {
         message: 'User data logged successfully',
         isDuplicate: false,
-        data: { email, phone, surveyType, timestamp },
+        data: { name, email, phone, surveyType, timestamp },
       },
       { status: 201 }
     );

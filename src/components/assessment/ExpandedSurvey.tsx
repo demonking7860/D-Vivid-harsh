@@ -23,6 +23,7 @@ interface Question {
 }
 
 interface UserInfo {
+  name: string;
   email: string;
   mobile: string;
 }
@@ -511,18 +512,25 @@ const expandedQuestions: Question[] = [
 
 export default function ExpandedSurvey() {
   const [step, setStep] = useState<'info' | 'survey' | 'processing' | 'completed'>('info');
-  const [userInfo, setUserInfo] = useState<UserInfo>({ email: '', mobile: '' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', mobile: '' });
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{ email?: string; mobile?: string }>({});
+  const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
 
   const currentQuestion = expandedQuestions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / expandedQuestions.length) * 100;
 
   const validateForm = (): boolean => {
-    const errors: { email?: string; mobile?: string } = {};
+    const errors: { name?: string; email?: string; mobile?: string } = {};
+
+    // Name validation
+    if (!userInfo.name || userInfo.name.trim() === '') {
+      errors.name = "Name is required";
+    } else if (userInfo.name.trim().length < 2) {
+      errors.name = "Name must be at least 2 characters";
+    }
 
     // Email validation - strict format check
     if (!userInfo.email) {
@@ -547,7 +555,7 @@ export default function ExpandedSurvey() {
     if (validateForm()) {
       try {
         // Log user data to Google Sheets
-        await logUserToSheets(userInfo.email, userInfo.mobile, 'Expanded');
+        await logUserToSheets(userInfo.name, userInfo.email, userInfo.mobile, 'Expanded');
         setStep('survey');
       } catch (error) {
         console.error('Failed to log user:', error);
@@ -603,7 +611,7 @@ export default function ExpandedSurvey() {
       : 0;
 
     return {
-      userName: userInfo.email.split('@')[0],
+      userName: userInfo.name || userInfo.email.split('@')[0],
       userEmail: userInfo.email,
       userPhone: userInfo.mobile,
       overallScore,
@@ -728,6 +736,26 @@ export default function ExpandedSurvey() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleInfoSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your Name"
+                  value={userInfo.name}
+                  onChange={(e) => {
+                    setUserInfo({...userInfo, name: e.target.value});
+                    if (validationErrors.name) {
+                      setValidationErrors({...validationErrors, name: ''});
+                    }
+                  }}
+                  className={validationErrors.name ? 'border-red-500' : ''}
+                  required
+                />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-sm">{validationErrors.name}</p>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input

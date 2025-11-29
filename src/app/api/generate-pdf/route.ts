@@ -5,7 +5,7 @@ import { google } from 'googleapis'
 
 // Google Sheets configuration
 const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U"
-const RANGE = 'Sheet1!A:G' // Columns: Email, Phone, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL
+const RANGE = 'Sheet1!A:H' // Columns: Email, Phone, Name, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL/Notes
 
 // Parse service account credentials from environment variable
 const getServiceAccountAuth = () => {
@@ -72,11 +72,11 @@ const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) =
     const timestamp = new Date().toISOString();
 
     if (rowIndex > 0) {
-      // Update only column G (S3 URL) in existing row
+      // Update only column H (S3 URL) in existing row
       console.log(`📝 Updating row ${rowIndex} with S3 URL...`);
       await sheets.spreadsheets.values.update({
         spreadsheetId: SHEET_ID,
-        range: `Sheet1!G${rowIndex}`,
+        range: `Sheet1!H${rowIndex}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[s3Url]]
@@ -86,7 +86,7 @@ const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) =
     } else {
       // Create new row with all data including S3 URL
       console.log('📝 Creating new row with S3 URL...');
-      const newRow = [email, phone, '', timestamp, '', '', s3Url];
+      const newRow = [email, phone, '', '', timestamp, '', '', s3Url]; // Email, Phone, Name, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL
       await sheets.spreadsheets.values.append({
         spreadsheetId: SHEET_ID,
         range: RANGE,

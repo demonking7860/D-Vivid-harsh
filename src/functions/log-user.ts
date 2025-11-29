@@ -1,15 +1,33 @@
 /**
  * Logs user data to Google Sheets when they start a survey
- * @param email - User's email address
- * @param phone - User's phone number
- * @param surveyType - Type of survey (e.g., 'Concise', 'Expanded', 'UltraQuick', 'StudyAbroad')
- * @returns Promise with the response
+ * Supports both old signature (email, phone, surveyType) and new signature (name, email, phone, surveyType)
  */
 export async function logUserToSheets(
-  email: string,
-  phone: string,
-  surveyType: string
-) {
+  nameOrEmail: string,
+  emailOrPhone: string,
+  phoneOrSurveyType: string,
+  surveyType?: string
+): Promise<any> {
+  // Handle both old signature (email, phone, surveyType) and new signature (name, email, phone, surveyType)
+  let name: string | undefined;
+  let email: string;
+  let phone: string;
+  let type: string;
+
+  if (surveyType !== undefined) {
+    // New signature: (name, email, phone, surveyType)
+    name = nameOrEmail;
+    email = emailOrPhone;
+    phone = phoneOrSurveyType;
+    type = surveyType;
+  } else {
+    // Old signature: (email, phone, surveyType)
+    name = undefined;
+    email = nameOrEmail;
+    phone = emailOrPhone;
+    type = phoneOrSurveyType;
+  }
+
   try {
     const response = await fetch('/api/log-user', {
       method: 'POST',
@@ -17,9 +35,10 @@ export async function logUserToSheets(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        name,
         email,
         phone,
-        surveyType,
+        surveyType: type,
       }),
     });
 
