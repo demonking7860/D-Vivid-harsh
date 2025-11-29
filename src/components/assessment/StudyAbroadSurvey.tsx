@@ -8,7 +8,6 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "../ui/progress";
 import { CheckCircle } from "lucide-react";
-import { logUserToSheets } from "@/functions/log-user";
 
 interface Question {
   id: string;
@@ -671,15 +670,29 @@ const calculateScores = (responses: Response[]) => {
     }
   });
   
+  // Weight mapping for each section
+  const weightMapping: { [key: string]: number } = {
+    'Financial Planning': 25,
+    'Academic Readiness': 20,
+    'Career & Goal Alignment': 20,
+    'Personal & Cultural Readiness': 15,
+    'Practical Readiness': 10,
+    'Support System': 10
+  };
+
   // Convert to percentage scores with more realistic scoring
   const topicScores = Object.entries(sectionScores).map(([section, scores]) => {
     // Calculate percentage based on average score per question
     const averageScorePerQuestion = scores.total > 0 ? scores.correct / scores.total : 0;
     const percentage = Math.round((averageScorePerQuestion / 4) * 100); // 4 is max score per question
+    const weight = weightMapping[section] || 0;
+    const weighted = Math.round((percentage * weight) / 100);
     
     return {
       name: section,
       correct: Math.max(0, Math.min(100, percentage)), // Clamp between 0-100
+      weighted: weighted,
+      weight: weight,
       total: 100
     };
   });
@@ -689,7 +702,7 @@ const calculateScores = (responses: Response[]) => {
   
   return {
     overallScore,
-    topicScores
+    topicScoresArray: topicScores
   };
 };
 
@@ -736,15 +749,8 @@ export default function StudyAbroadSurvey() {
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      try {
-        // Log user data to Google Sheets
-        await logUserToSheets(userInfo.name, userInfo.email, userInfo.mobile, 'StudyAbroad');
-        setStep('survey');
-      } catch (error) {
-        console.error('Failed to log user:', error);
-        // Still proceed with survey even if logging fails
-        setStep('survey');
-      }
+      // User data will be stored in localStorage and written to Sheets when PDF is generated
+      setStep('survey');
     }
   };
 
@@ -781,11 +787,11 @@ export default function StudyAbroadSurvey() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              userName: userInfo.name || userInfo.email.split('@')[0],
-              userEmail: userInfo.email,
-              userPhone: userInfo.mobile,
+              userName: userInfo?.name || userInfo?.email?.split('@')[0] || 'Unknown User',
+              userEmail: userInfo?.email || '',
+              userPhone: userInfo?.mobile || '',
               overallScore: scores.overallScore,
-              topicScoresArray: scores.topicScores
+              topicScoresArray: scores.topicScoresArray
             })
           });
 
@@ -974,13 +980,18 @@ export default function StudyAbroadSurvey() {
           console.log('⏳ Waiting 25 seconds for PDF generation to complete...');
           await new Promise(resolve => setTimeout(resolve, 25000));
           
-          // Now make the request after waiting
+          // Now make the request after waiting - include full surveyData with userInfo
           const response = await fetch('/api/generate-pdf', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(surveyData.analysisResults)
+            body: JSON.stringify({
+              ...surveyData.analysisResults,
+              userInfo: surveyData.userInfo,
+              surveyType: 'StudyAbroad',
+              testType: surveyData.testType || 'Study Abroad Readiness Assessment'
+            })
           });
 
           if (response.ok) {

@@ -35,6 +35,29 @@
           return NextResponse.json({ error: 'Missing user name' }, { status: 400 })
         }
         
+        // Validate topicScoresArray
+        if (!studentData.topicScoresArray || !Array.isArray(studentData.topicScoresArray)) {
+          console.error('❌ Missing or invalid topicScoresArray in student data')
+          console.error('📊 Received data:', JSON.stringify(studentData, null, 2))
+          return NextResponse.json({ error: 'Missing or invalid topicScoresArray' }, { status: 400 })
+        }
+        
+        if (studentData.topicScoresArray.length === 0) {
+          console.error('❌ Empty topicScoresArray')
+          return NextResponse.json({ error: 'topicScoresArray is empty' }, { status: 400 })
+        }
+        
+        // Validate each topic score has required fields
+        for (const topic of studentData.topicScoresArray) {
+          if (typeof topic.correct !== 'number' || typeof topic.total !== 'number' || 
+              typeof topic.weighted !== 'number' || typeof topic.weight !== 'number') {
+            console.error('❌ Invalid topic score structure:', JSON.stringify(topic, null, 2))
+            return NextResponse.json({ 
+              error: 'Invalid topic score structure. Required: correct, total, weighted, weight (all numbers)' 
+            }, { status: 400 })
+          }
+        }
+        
         // Check if API key is available
         const apiKey = process.env.PERPLEXITY_API_KEY;
         if (!apiKey) {

@@ -46,57 +46,41 @@ const getSheetsClient = async () => {
   return sheets;
 };
 
-// Function to store PDF URL in Google Sheets
-const storeS3UrlInSheets = async (email: string, phone: string, s3Url: string) => {
+// Function to store all user data and PDF URL in Google Sheets together
+const storeS3UrlInSheets = async (
+  name: string,
+  email: string,
+  phone: string,
+  surveyType: string,
+  s3Url: string
+) => {
   try {
-    console.log('📊 Attempting to store S3 URL in Google Sheets...');
+    console.log('📊 Attempting to store all user data and S3 URL in Google Sheets...');
     const sheets = await getSheetsClient();
 
-    // Get existing data to find matching row
-    const getResponse = await sheets.spreadsheets.values.get({
+    // Write all data together in one operation
+    const timestamp = new Date().toISOString();
+    const newRow = [
+      email,
+      phone,
+      name || '',
+      surveyType || 'Unknown',
+      timestamp,
+      '', // Lead Generated
+      '', // Contacted
+      s3Url // S3 URL
+    ];
+
+    console.log('📝 Creating new row with all data:', { email, phone, name, surveyType, s3Url });
+    await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
       range: RANGE,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [newRow] },
     });
-
-    const rows = getResponse.data.values || [];
-    let rowIndex = -1;
-
-    // Find row with matching email
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i] && rows[i][0] === email) {
-        rowIndex = i + 1; // Google Sheets uses 1-based indexing
-        break;
-      }
-    }
-
-    const timestamp = new Date().toISOString();
-
-    if (rowIndex > 0) {
-      // Update only column H (S3 URL) in existing row
-      console.log(`📝 Updating row ${rowIndex} with S3 URL...`);
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID,
-        range: `Sheet1!H${rowIndex}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[s3Url]]
-        }
-      });
-      console.log('✅ Successfully updated S3 URL in existing row');
-    } else {
-      // Create new row with all data including S3 URL
-      console.log('📝 Creating new row with S3 URL...');
-      const newRow = [email, phone, '', '', timestamp, '', '', s3Url]; // Email, Phone, Name, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SHEET_ID,
-        range: RANGE,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [newRow] },
-      });
-      console.log('✅ Successfully added S3 URL in new row');
-    }
+    console.log('✅ Successfully stored all data in Google Sheets');
   } catch (error) {
-    console.error('❌ Failed to store S3 URL in Google Sheets:', error);
+    console.error('❌ Failed to store data in Google Sheets:', error);
     // Don't throw - let PDF upload succeed even if Sheets storage fails
   }
 };
@@ -247,20 +231,36 @@ if (s3Bucket) {
     const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
     console.log("✅ Successfully uploaded PDF to S3:", s3Url);
 
-    // Store S3 URL in Google Sheets along with user details
+    // Extract user data from request body - check for userInfo object first, then fallback to analysisResults
+    const userInfo = results.userInfo || {};
+    const studentName =
+      userInfo.name ||
+      results["Student Name"] ||
+      results.studentName ||
+      "";
     const studentEmail =
+      userInfo.email ||
       results["Student Email"] ||
       results.studentEmail ||
       results.userEmail ||
       "";
     const studentPhone =
+      userInfo.mobile ||
+      userInfo.phone ||
       results["Student Phone"] ||
       results.studentPhone ||
       results.userPhone ||
       "";
+    const surveyType =
+      results.surveyType ||
+      (results.testType && results.testType.includes('UltraQuick') ? 'UltraQuick' :
+       results.testType && results.testType.includes('Concise') ? 'Concise' :
+       results.testType && results.testType.includes('Expanded') ? 'Expanded' :
+       results.testType && results.testType.includes('Study Abroad') ? 'StudyAbroad' :
+       'Unknown');
 
     if (studentEmail && studentPhone) {
-      await storeS3UrlInSheets(studentEmail, studentPhone, s3Url);
+      await storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url);
     } else {
       console.warn("⚠️ Email or phone missing - skipping Sheets storage");
     }
