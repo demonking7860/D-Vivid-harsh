@@ -713,6 +713,7 @@ export default function StudyAbroadSurvey() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
 
   const currentQuestion = surveyQuestions[currentQuestionIndex];
@@ -971,16 +972,15 @@ export default function StudyAbroadSurvey() {
       if (isDownloadingPDF) return; // Prevent multiple clicks
       
       setIsDownloadingPDF(true);
+      setPdfStatus('Preparing your report...');
       try {
         const surveyData = JSON.parse(localStorage.getItem('studyAbroadSurvey') || '{}');
         if (surveyData.analysisResults) {
           console.log('🔄 Starting PDF generation...');
           
-          // Wait 25 seconds for PDF generation (no premature checks)
-          console.log('⏳ Waiting 25 seconds for PDF generation to complete...');
-          await new Promise(resolve => setTimeout(resolve, 25000));
+          setPdfStatus('Generating PDF report...');
           
-          // Now make the request after waiting - include full surveyData with userInfo
+          // Send request immediately - server will handle generation
           const response = await fetch('/api/generate-pdf', {
             method: 'POST',
             headers: {
@@ -995,6 +995,7 @@ export default function StudyAbroadSurvey() {
           });
 
           if (response.ok) {
+            setPdfStatus('Finalizing download...');
             console.log('✅ PDF generated successfully');
             const blob = await response.blob();
             console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
@@ -1014,21 +1015,32 @@ export default function StudyAbroadSurvey() {
               document.body.removeChild(a);
             }, 1000);
             
+            setPdfStatus('✅ Report downloaded successfully!');
             console.log('✅ PDF download initiated');
+            
+            // Clear status message after 3 seconds
+            setTimeout(() => setPdfStatus(''), 3000);
           } else {
             const errorText = await response.text();
             console.error('❌ PDF generation failed:', response.status, errorText);
+            setPdfStatus(`❌ PDF generation failed (${response.status}). Please try again.`);
+            setTimeout(() => setPdfStatus(''), 5000);
             alert(`PDF generation failed (${response.status}). Please try again.`);
           }
         } else {
           console.error('❌ No analysis results found');
+          setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
+          setTimeout(() => setPdfStatus(''), 5000);
           alert('No analysis results found. Please complete the assessment again.');
         }
       } catch (error: any) {
         console.error('❌ Error downloading PDF:', error);
+        setPdfStatus('❌ Error generating PDF. Please try again.');
+        setTimeout(() => setPdfStatus(''), 5000);
         alert('Error downloading PDF. Please try again.');
       } finally {
         setIsDownloadingPDF(false);
+        if (!pdfStatus) setPdfStatus('');
       }
     };
 
@@ -1051,6 +1063,13 @@ export default function StudyAbroadSurvey() {
                   <strong>Email:</strong> {userInfo.email}
                 </p>
               </div>
+              {pdfStatus && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-green-700 dark:text-green-300 text-center">
+                    {pdfStatus}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   onClick={handleDownloadPDF}

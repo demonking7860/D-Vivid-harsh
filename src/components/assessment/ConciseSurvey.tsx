@@ -329,6 +329,7 @@ export default function ConciseSurvey() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
 
   const currentQuestion = conciseQuestions[currentQuestionIndex];
@@ -656,16 +657,15 @@ export default function ConciseSurvey() {
       if (isDownloadingPDF) return;
       
       setIsDownloadingPDF(true);
+      setPdfStatus('Preparing your report...');
       try {
         const surveyData = JSON.parse(localStorage.getItem('conciseSurvey') || '{}');
         if (surveyData.analysisResults) {
           console.log('🔄 Starting PDF generation for Concise Survey...');
           
-          // Wait 25 seconds for PDF generation (no premature checks)
-          console.log('⏳ Waiting 25 seconds for PDF generation to complete...');
-          await new Promise(resolve => setTimeout(resolve, 25000));
+          setPdfStatus('Generating PDF report...');
           
-          // Now make the request after waiting - include full surveyData with userInfo
+          // Send request immediately - server will handle generation
           const response = await fetch('/api/generate-pdf', {
             method: 'POST',
             headers: {
@@ -680,6 +680,7 @@ export default function ConciseSurvey() {
           });
 
           if (response.ok) {
+            setPdfStatus('Finalizing download...');
             console.log('✅ PDF generated successfully for Concise Survey');
             const blob = await response.blob();
             console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
@@ -698,20 +699,32 @@ export default function ConciseSurvey() {
               document.body.removeChild(a);
             }, 1000);
             
+            setPdfStatus('✅ Report downloaded successfully!');
             console.log('✅ PDF download initiated for Concise Survey');
+            
+            // Clear status message after 3 seconds
+            setTimeout(() => setPdfStatus(''), 3000);
           } else {
-            console.error('❌ PDF generation failed:', response.status);
+            const errorText = await response.text();
+            console.error('❌ PDF generation failed:', response.status, errorText);
+            setPdfStatus('❌ PDF generation failed. Please try again.');
+            setTimeout(() => setPdfStatus(''), 5000);
             alert('PDF generation failed. Please try again.');
           }
         } else {
           console.error('❌ No analysis results found for Concise Survey');
+          setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
+          setTimeout(() => setPdfStatus(''), 5000);
           alert('No analysis results found. Please complete the assessment again.');
         }
       } catch (error: any) {
         console.error('❌ Error downloading PDF for Concise Survey:', error);
+        setPdfStatus('❌ Error generating PDF. Please try again.');
+        setTimeout(() => setPdfStatus(''), 5000);
         alert('Error downloading PDF. Please try again.');
       } finally {
         setIsDownloadingPDF(false);
+        if (!pdfStatus) setPdfStatus('');
       }
     };
 
@@ -735,6 +748,13 @@ export default function ConciseSurvey() {
                   <strong>Assessment Type:</strong> Concise Track (25 Questions)
                 </p>
               </div>
+              {pdfStatus && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-purple-700 dark:text-purple-300 text-center">
+                    {pdfStatus}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button 
                   onClick={handleDownloadPDF}

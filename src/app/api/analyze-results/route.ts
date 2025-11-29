@@ -26,7 +26,18 @@
     export async function POST(request: NextRequest) {
       try {
         console.log('🔍 Analyze-results API called');
-        const studentData: StudentData = await request.json()
+        
+        let studentData: StudentData;
+        try {
+          studentData = await request.json();
+        } catch (jsonError: any) {
+          console.error('❌ Failed to parse request JSON:', jsonError);
+          return NextResponse.json({ 
+            error: 'Invalid JSON in request body',
+            details: jsonError.message 
+          }, { status: 400 });
+        }
+        
         console.log('📥 Received student data:', JSON.stringify(studentData, null, 2));
         
         // Validate required fields
@@ -264,7 +275,17 @@
     - Medium-term preparation (6-12 months)
     - Long-term development (12+ months)
     
-    OUTPUT FORMAT (JSON only):
+    OUTPUT FORMAT (CRITICAL - Return ONLY valid JSON, no markdown, no code blocks, no explanations):
+    You MUST return ONLY valid JSON. Do NOT include markdown code blocks, do NOT include explanations before or after the JSON. Return ONLY the JSON object.
+    
+    IMPORTANT JSON RULES:
+    - All strings must be properly escaped (use \\" for quotes inside strings)
+    - No trailing commas
+    - All numbers must be actual numbers, not strings
+    - All property names must be in double quotes
+    - No comments in JSON
+    - Ensure all brackets and braces are properly closed
+    
     {
       "Student Name": "${studentData.userName}",
       "Student Email": "${studentData.userEmail || ''}",
@@ -277,18 +298,20 @@
         "Practical Readiness": ${studentData.topicScoresArray.find(t => t.name === 'Practical Readiness')?.correct || 0},
         "Support System": ${studentData.topicScoresArray.find(t => t.name === 'Support System')?.correct || 0}
       },
-      "Overall Readiness Index": <calculated CRI score>,
+      "Overall Readiness Index": <calculated CRI score as number>,
       "Readiness Level": "<determined level>",
       "Preparation Timeline": "<timeline estimate>",
-      "Strengths": "<detailed paragraph citing specific constructs>",
-      "Gaps": "<detailed paragraph citing specific weaknesses and risks>",
-      "Recommendations": "<3-5 specific, actionable recommendations with timeline>",
+      "Strengths": "<detailed paragraph citing specific constructs - escape all quotes with \\">",
+      "Gaps": "<detailed paragraph citing specific weaknesses and risks - escape all quotes with \\">",
+      "Recommendations": "<3-5 specific, actionable recommendations with timeline - escape all quotes with \\">",
       "Country Fit (Top 3)": [
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"},
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"},
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores>", "challenges": "<specific challenges based on weak dimensions>", "universities": "<realistic university names>"}
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"},
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"},
+        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"}
       ]
-    }`
+    }
+    
+    REMEMBER: Return ONLY the JSON object above, nothing else. No markdown, no code blocks, no explanations.`
 
         console.log('🌐 Calling Perplexity API...');
           const openai = new OpenAI({
@@ -344,16 +367,78 @@
         console.log('✅ LLM API success!');
           console.log('📝 Generated text length:', generatedText.length);
           console.log('📝 Generated text preview:', generatedText.substring(0, 200) + '...');
+          console.log('📝 Full generated text:', generatedText);
           
         // Parse the JSON response from LLM
         // Extract JSON from the response (in case there's extra text)
         const jsonMatch = generatedText.match(/\{[\s\S]*\}/)
         if (!jsonMatch) {
+          console.error('❌ No JSON found in LLM response');
+          console.error('📝 Full response:', generatedText);
           throw new Error('No JSON found in LLM response');
         }
         
-        const llmResult = JSON.parse(jsonMatch[0]);
-        console.log('✅ Successfully parsed LLM response:', JSON.stringify(llmResult, null, 2));
+        let jsonString = jsonMatch[0];
+        console.log('📝 Extracted JSON string length:', jsonString.length);
+        console.log('📝 Extracted JSON preview:', jsonString.substring(0, 500) + '...');
+        
+        // Function to clean JSON string
+        const cleanJsonString = (str: string): string => {
+          // Remove trailing commas before } or ]
+          str = str.replace(/,(\s*[}\]])/g, '$1');
+          
+          // Fix common issues with quotes in strings
+          // This is a basic fix - we'll try to escape unescaped quotes in string values
+          // But we need to be careful not to break valid escaped quotes
+          
+          // Remove any text after the last closing brace (in case LLM added extra text)
+          const lastBraceIndex = str.lastIndexOf('}');
+          if (lastBraceIndex > 0 && lastBraceIndex < str.length - 1) {
+            str = str.substring(0, lastBraceIndex + 1);
+          }
+          
+          return str;
+        };
+        
+        // Try to fix common JSON issues
+        jsonString = cleanJsonString(jsonString);
+        
+        let llmResult: any;
+        try {
+          llmResult = JSON.parse(jsonString);
+          console.log('✅ Successfully parsed LLM response:', JSON.stringify(llmResult, null, 2));
+        } catch (parseError: any) {
+          console.error('❌ JSON parse error:', parseError.message);
+          const errorPosMatch = parseError.message.match(/position (\d+)/);
+          const errorPos = errorPosMatch ? parseInt(errorPosMatch[1]) : 0;
+          
+          if (errorPos > 0) {
+            const start = Math.max(0, errorPos - 200);
+            const end = Math.min(jsonString.length, errorPos + 200);
+            console.error('❌ JSON string around error (position', errorPos, '):');
+            console.error('❌ Context:', jsonString.substring(start, end));
+            console.error('❌ Character at error position:', jsonString[errorPos], '(', jsonString.charCodeAt(errorPos), ')');
+          }
+          
+          console.error('❌ Full JSON string:', jsonString);
+          
+          // Try a more aggressive fix: remove any text after the last valid }
+          // This handles cases where LLM adds extra text after JSON
+          try {
+            const lastBraceIndex = jsonString.lastIndexOf('}');
+            if (lastBraceIndex > 0) {
+              const cleanedJson = jsonString.substring(0, lastBraceIndex + 1);
+              console.log('🔄 Attempting to parse cleaned JSON (removed text after last })...');
+              llmResult = JSON.parse(cleanedJson);
+              console.log('✅ Successfully parsed cleaned LLM response');
+            } else {
+              throw parseError;
+            }
+          } catch (secondError: any) {
+            console.error('❌ Failed to parse even after cleaning:', secondError.message);
+            throw new Error(`Failed to parse LLM JSON response: ${parseError.message}. Original error at position ${errorPos}`);
+          }
+        }
         
         // Validate that essential fields exist
         if (!llmResult['Student Name'] && !llmResult['studentName']) {
