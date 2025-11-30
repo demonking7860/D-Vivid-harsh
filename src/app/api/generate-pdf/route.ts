@@ -265,8 +265,7 @@ if (s3Bucket) {
       console.warn("⚠️ Email or phone missing - skipping Sheets storage");
     }
 
-    await browser.close();
-    return NextResponse.json({ s3Url, key }, { status: 200 });
+    console.log("✅ S3 upload and Sheets storage completed - continuing to return PDF blob to client");
   } catch (uploadErr) {
     console.error("❌ Failed to upload PDF to S3:");
     console.error("  Error Name:", (uploadErr as any).name);
@@ -275,13 +274,13 @@ if (s3Bucket) {
       "  Full Error Object:",
       JSON.stringify(uploadErr, null, 2)
     );
-    // fall back to returning the PDF response
+    console.log("⚠️ Continuing to return PDF blob despite S3 upload failure");
+    // Continue to return PDF response even if S3 upload fails
   }
 } else {
   console.log("⚠️ S3 upload skipped - missing S3_BUCKET");
   console.log(`  - Bucket: ${s3Bucket}`);
 }
-
 
     await browser.close()
 
