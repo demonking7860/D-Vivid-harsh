@@ -15,8 +15,16 @@ export async function sendToLeadSquared(
     const secretKey = process.env.LEADSQUARED_SECRET_KEY || 'b9b4d1c24524f817b1b57f22972c097e52e2a16e';
     const host = process.env.LEADSQUARED_HOST || 'https://api-in21.leadsquared.com/v2';
 
-    // Extract first name from full name (split by space, take first part)
-    const firstName = name ? name.split(' ')[0] : '';
+    // Extract first name and last name from full name
+    let firstName = '';
+    let lastName = '';
+    
+    if (name) {
+      const nameParts = name.trim().split(/\s+/);
+      firstName = nameParts[0] || '';
+      // Join all remaining parts as last name (handles middle names too)
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
 
     // Build the request body in LeadSquared's attribute-value format
     const requestBody = [
@@ -27,6 +35,10 @@ export async function sendToLeadSquared(
       {
         Attribute: 'FirstName',
         Value: firstName
+      },
+      {
+        Attribute: 'LastName',
+        Value: lastName
       },
       {
         Attribute: 'Phone',
