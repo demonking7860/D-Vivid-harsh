@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { google } from 'googleapis'
+import { sendToLeadSquared } from '@/lib/leadsquared'
 
 // Google Sheets configuration
 const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U"
@@ -260,12 +261,16 @@ if (s3Bucket) {
        'Unknown');
 
     if (studentEmail && studentPhone) {
+      // Store in Google Sheets
       await storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url);
+      
+      // Send to LeadSquared CRM
+      await sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url);
     } else {
-      console.warn("⚠️ Email or phone missing - skipping Sheets storage");
+      console.warn("⚠️ Email or phone missing - skipping Sheets storage and LeadSquared sync");
     }
 
-    console.log("✅ S3 upload and Sheets storage completed - continuing to return PDF blob to client");
+    console.log("✅ S3 upload, Sheets storage, and LeadSquared sync completed - continuing to return PDF blob to client");
   } catch (uploadErr) {
     console.error("❌ Failed to upload PDF to S3:");
     console.error("  Error Name:", (uploadErr as any).name);
