@@ -46,11 +46,11 @@ export async function sendToLeadSquared(
       },
       {
         Attribute: 'Source',
-        Value: 'Psychometric Test'
+        Value: 'Dvivid AI Website'
       },
       {
         Attribute: 'mx_Lead_Source_Type',
-        Value: 'Dvivid AI Website'
+        Value: 'Psychometric Test'
       },
       {
         Attribute: 'mx_Survey_Type',
