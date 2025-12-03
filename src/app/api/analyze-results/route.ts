@@ -338,7 +338,7 @@
                 { role: "user", content: userPrompt }
                 ],
                 temperature: 0.3,
-                max_tokens: 2048
+                max_tokens: 4096  // Increased to prevent truncation
               });
               
               const timeoutPromise = new Promise((_, reject) => 
@@ -382,14 +382,10 @@
         console.log('📝 Extracted JSON string length:', jsonString.length);
         console.log('📝 Extracted JSON preview:', jsonString.substring(0, 500) + '...');
         
-        // Function to clean JSON string
+        // Function to clean and repair JSON string
         const cleanJsonString = (str: string): string => {
           // Remove trailing commas before } or ]
           str = str.replace(/,(\s*[}\]])/g, '$1');
-          
-          // Fix common issues with quotes in strings
-          // This is a basic fix - we'll try to escape unescaped quotes in string values
-          // But we need to be careful not to break valid escaped quotes
           
           // Remove any text after the last closing brace (in case LLM added extra text)
           const lastBraceIndex = str.lastIndexOf('}');
@@ -400,8 +396,122 @@
           return str;
         };
         
+        // Function to repair incomplete JSON by closing open braces/brackets
+        const repairIncompleteJson = (str: string): string => {
+          let openBraces = 0;
+          let openBrackets = 0;
+          let inString = false;
+          let escapeNext = false;
+          
+          // Count open/close braces and brackets
+          for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            
+            if (escapeNext) {
+              escapeNext = false;
+              continue;
+            }
+            
+            if (char === '\\') {
+              escapeNext = true;
+              continue;
+            }
+            
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+            
+            if (inString) continue;
+            
+            if (char === '{') openBraces++;
+            else if (char === '}') openBraces--;
+            else if (char === '[') openBrackets++;
+            else if (char === ']') openBrackets--;
+          }
+          
+          // Close any unclosed strings first (remove incomplete string at the end)
+          if (inString) {
+            // Find the last unclosed quote and remove everything after it
+            const lastQuoteIndex = str.lastIndexOf('"');
+            if (lastQuoteIndex > 0) {
+              // Check if it's an opening quote (not escaped)
+              let isEscaped = false;
+              for (let i = lastQuoteIndex - 1; i >= 0 && str[i] === '\\'; i--) {
+                isEscaped = !isEscaped;
+              }
+              if (!isEscaped) {
+                str = str.substring(0, lastQuoteIndex) + '"';
+              }
+            }
+          }
+          
+          // Close any unclosed arrays
+          while (openBrackets > 0) {
+            str += ']';
+            openBrackets--;
+          }
+          
+          // Close any unclosed objects
+          while (openBraces > 0) {
+            str += '}';
+            openBraces--;
+          }
+          
+          return str;
+        };
+        
         // Try to fix common JSON issues
         jsonString = cleanJsonString(jsonString);
+        
+        // Helper function to extract minimal valid JSON as fallback
+        const extractMinimalJson = (str: string): any | null => {
+          try {
+            // Try to extract just the essential fields we can find
+            const studentNameMatch = str.match(/"Student Name"\s*:\s*"([^"]+)"/);
+            const studentEmailMatch = str.match(/"Student Email"\s*:\s*"([^"]*)"/);
+            const studentPhoneMatch = str.match(/"Student Phone"\s*:\s*"([^"]*)"/);
+            const overallIndexMatch = str.match(/"Overall Readiness Index"\s*:\s*(\d+\.?\d*)/);
+            const readinessLevelMatch = str.match(/"Readiness Level"\s*:\s*"([^"]+)"/);
+            
+            if (studentNameMatch && overallIndexMatch) {
+              // Extract scores if possible
+              const scores: any = {};
+              const scorePatterns = [
+                { key: 'Financial Planning', pattern: /"Financial Planning"\s*:\s*(\d+)/ },
+                { key: 'Academic Readiness', pattern: /"Academic Readiness"\s*:\s*(\d+)/ },
+                { key: 'Career Alignment', pattern: /"Career Alignment"\s*:\s*(\d+)/ },
+                { key: 'Personal & Cultural', pattern: /"Personal & Cultural"\s*:\s*(\d+)/ },
+                { key: 'Practical Readiness', pattern: /"Practical Readiness"\s*:\s*(\d+)/ },
+                { key: 'Support System', pattern: /"Support System"\s*:\s*(\d+)/ }
+              ];
+              
+              scorePatterns.forEach(({ key, pattern }) => {
+                const match = str.match(pattern);
+                if (match) {
+                  scores[key] = parseInt(match[1]);
+                }
+              });
+              
+              return {
+                'Student Name': studentNameMatch[1],
+                'Student Email': studentEmailMatch ? studentEmailMatch[1] : '',
+                'Student Phone': studentPhoneMatch ? studentPhoneMatch[1] : '',
+                'Scores': scores,
+                'Overall Readiness Index': parseFloat(overallIndexMatch[1]),
+                'Readiness Level': readinessLevelMatch ? readinessLevelMatch[1] : 'Unknown',
+                'Preparation Timeline': 'Unable to determine - response was truncated',
+                'Strengths': 'Response was truncated. Please retry the assessment.',
+                'Gaps': 'Response was truncated. Please retry the assessment.',
+                'Recommendations': 'Response was truncated. Please retry the assessment.',
+                'Country Fit (Top 3)': []
+              };
+            }
+            return null;
+          } catch (e) {
+            return null;
+          }
+        };
         
         let llmResult: any;
         try {
@@ -422,21 +532,30 @@
           
           console.error('❌ Full JSON string:', jsonString);
           
-          // Try a more aggressive fix: remove any text after the last valid }
-          // This handles cases where LLM adds extra text after JSON
+          // Try a more aggressive fix: repair incomplete JSON
           try {
-            const lastBraceIndex = jsonString.lastIndexOf('}');
-            if (lastBraceIndex > 0) {
-              const cleanedJson = jsonString.substring(0, lastBraceIndex + 1);
-              console.log('🔄 Attempting to parse cleaned JSON (removed text after last })...');
-              llmResult = JSON.parse(cleanedJson);
-              console.log('✅ Successfully parsed cleaned LLM response');
-            } else {
-              throw parseError;
+            console.log('🔄 Attempting to repair incomplete JSON...');
+            const repairedJson = repairIncompleteJson(jsonString);
+            console.log('🔄 Repaired JSON length:', repairedJson.length);
+            llmResult = JSON.parse(repairedJson);
+            console.log('✅ Successfully parsed repaired LLM response');
+          } catch (repairError: any) {
+            console.error('❌ Failed to parse even after repair:', repairError.message);
+            
+            // Last resort: try to extract a minimal valid JSON with just essential fields
+            try {
+              console.log('🔄 Attempting to extract minimal valid JSON...');
+              const minimalJson = extractMinimalJson(jsonString);
+              if (minimalJson) {
+                llmResult = minimalJson;
+                console.log('✅ Successfully extracted minimal JSON');
+              } else {
+                throw repairError;
+              }
+            } catch (minimalError: any) {
+              console.error('❌ Failed to extract minimal JSON:', minimalError.message);
+              throw new Error(`Failed to parse LLM JSON response: ${parseError.message}. Original error at position ${errorPos}`);
             }
-          } catch (secondError: any) {
-            console.error('❌ Failed to parse even after cleaning:', secondError.message);
-            throw new Error(`Failed to parse LLM JSON response: ${parseError.message}. Original error at position ${errorPos}`);
           }
         }
         
