@@ -317,12 +317,12 @@
           const openai = new OpenAI({
             apiKey: apiKey,
             baseURL: "https://api.perplexity.ai",
-            timeout: 60000, // 60 second timeout
+            timeout: 27000, // 27 second timeout (below 30s Amplify SSR limit)
             maxRetries: 2,
           });
 
           // Use Perplexity Sonar models (sonar-pro as primary)
-        const models = ["sonar-pro", "sonar"];
+        const models = ["sonar"];
           
           let completion: any = null;
         let lastError: any = null;
@@ -338,11 +338,11 @@
                 { role: "user", content: userPrompt }
                 ],
                 temperature: 0.3,
-                max_tokens: 4096  // Increased to prevent truncation
+                max_tokens: 3400  // Reduced to speed up responses
               });
               
               const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Model timeout')), 45000)
+                setTimeout(() => reject(new Error('Model timeout')), 25000)
               );
               
               completion = await Promise.race([modelPromise, timeoutPromise]);
