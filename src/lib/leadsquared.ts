@@ -1,13 +1,13 @@
 /**
  * Checks if a lead exists in LeadSquared by email address
- * @returns true if lead exists (has ProspectID), false otherwise
+ * @returns Object with exists status and ProspectID if lead exists
  */
 async function checkLeadExists(
   email: string,
   accessKey: string,
   secretKey: string,
   host: string
-): Promise<boolean> {
+): Promise<{ exists: boolean; prospectId?: string }> {
   try {
     const checkUrl = `${host}/LeadManagement.svc/Leads.GetByEmailaddress?emailaddress=${encodeURIComponent(email)}&accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}`;
     
@@ -21,7 +21,7 @@ async function checkLeadExists(
     if (!response.ok) {
       // If API returns error, assume lead doesn't exist
       console.log('⚠️ Lead check API returned error, assuming new lead');
-      return false;
+      return { exists: false };
     }
 
     const data = await response.json();
@@ -29,19 +29,28 @@ async function checkLeadExists(
     // Check if response contains ProspectID (lead exists)
     // Response can be null, empty array, or object with ProspectID
     if (!data || (Array.isArray(data) && data.length === 0)) {
-      return false;
+      return { exists: false };
     }
     
     // Handle array response
     if (Array.isArray(data) && data.length > 0) {
-      return !!data[0]?.ProspectID;
+      const prospectId = data[0]?.ProspectID;
+      if (prospectId) {
+        return { exists: true, prospectId: String(prospectId) };
+      }
+      return { exists: false };
     }
     
     // Handle object response
-    return !!data.ProspectID;
+    const prospectId = data.ProspectID;
+    if (prospectId) {
+      return { exists: true, prospectId: String(prospectId) };
+    }
+    
+    return { exists: false };
   } catch (error) {
     console.error('⚠️ Error checking lead existence, assuming new lead:', error instanceof Error ? error.message : String(error));
-    return false; // On error, assume new lead to avoid blocking
+    return { exists: false }; // On error, assume new lead to avoid blocking
   }
 }
 
@@ -65,17 +74,24 @@ export async function sendToLeadSquared(
 
     // Check if lead exists by email address
     console.log('🔍 Checking if lead exists in LeadSquared by email address...');
-    const leadExists = await checkLeadExists(email, accessKey, secretKey, host);
+    const leadCheckResult = await checkLeadExists(email, accessKey, secretKey, host);
+    const leadExists = leadCheckResult.exists;
+    const prospectId = leadCheckResult.prospectId;
     
     // Generate timestamp for test
     const timestamp = new Date().toISOString();
 
     let requestBody: Array<{ Attribute: string; Value: string }>;
 
-    if (leadExists) {
-      // EXISTING LEAD: Use minimal payload (only test-related fields)
+    if (leadExists && prospectId) {
+      // EXISTING LEAD: Use minimal payload (only test-related fields) with ProspectID
       console.log('📝 Lead exists - using minimal payload (updating test fields only)');
+      console.log('  - ProspectID:', prospectId);
       requestBody = [
+        {
+          Attribute: 'ProspectID',
+          Value: prospectId
+        },
         {
           Attribute: 'EmailAddress',
           Value: email
@@ -157,6 +173,9 @@ export async function sendToLeadSquared(
     console.log('  - Phone:', phone);
     console.log('  - Survey Type:', surveyType);
     console.log('  - Lead exists:', leadExists);
+    if (leadExists && prospectId) {
+      console.log('  - ProspectID:', prospectId);
+    }
     console.log('  - Payload type:', leadExists ? 'minimal' : 'full');
 
     // Make the API request
