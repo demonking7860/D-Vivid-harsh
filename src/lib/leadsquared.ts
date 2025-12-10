@@ -1,15 +1,15 @@
 /**
- * Checks if a lead exists in LeadSquared by phone number
+ * Checks if a lead exists in LeadSquared by email address
  * @returns true if lead exists (has ProspectID), false otherwise
  */
 async function checkLeadExists(
-  phone: string,
+  email: string,
   accessKey: string,
   secretKey: string,
   host: string
 ): Promise<boolean> {
   try {
-    const checkUrl = `${host}/LeadManagement.svc/RetrieveLeadByPhoneNumber?phone=${encodeURIComponent(phone)}&accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}`;
+    const checkUrl = `${host}/LeadManagement.svc/Leads.GetByEmailaddress?emailaddress=${encodeURIComponent(email)}&accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}`;
     
     const response = await fetch(checkUrl, {
       method: 'GET',
@@ -63,9 +63,9 @@ export async function sendToLeadSquared(
     const secretKey = process.env.LEADSQUARED_SECRET_KEY || 'b9b4d1c24524f817b1b57f22972c097e52e2a16e';
     const host = process.env.LEADSQUARED_HOST || 'https://api-in21.leadsquared.com/v2';
 
-    // Check if lead exists by phone number
-    console.log('🔍 Checking if lead exists in LeadSquared...');
-    const leadExists = await checkLeadExists(phone, accessKey, secretKey, host);
+    // Check if lead exists by email address
+    console.log('🔍 Checking if lead exists in LeadSquared by email address...');
+    const leadExists = await checkLeadExists(email, accessKey, secretKey, host);
     
     // Generate timestamp for test
     const timestamp = new Date().toISOString();
