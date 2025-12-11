@@ -7,8 +7,11 @@ async function checkLeadExists(
   accessKey: string,
   secretKey: string,
   host: string
-): Promise<{ exists: boolean; prospectId?: string }> {
+): Promise<{ exists: boolean; prospectId?: string; source?: string }> {
   try {
+    // Normalize host to avoid double slashes
+    host = host.replace(/\/$/, '');
+
     const checkUrl = `${host}/LeadManagement.svc/Leads.GetByEmailaddress?emailaddress=${encodeURIComponent(email)}&accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}`;
     
     const response = await fetch(checkUrl, {
@@ -26,6 +29,16 @@ async function checkLeadExists(
 
     const data = await response.json();
     
+    // Helper to extract source from a record
+    const extractSource = (record: any): string | undefined => {
+      return (
+        record?.Source ||
+        record?.LeadSource ||
+        record?.mx_Lead_Source_Type ||
+        undefined
+      );
+    };
+
     // Check if response contains ProspectID (lead exists)
     // Response can be null, empty array, or object with ProspectID
     if (!data || (Array.isArray(data) && data.length === 0)) {
@@ -34,17 +47,20 @@ async function checkLeadExists(
     
     // Handle array response
     if (Array.isArray(data) && data.length > 0) {
-      const prospectId = data[0]?.ProspectID;
+      const record = data[0];
+      const prospectId = record?.ProspectID;
+      const source = extractSource(record);
       if (prospectId) {
-        return { exists: true, prospectId: String(prospectId) };
+        return { exists: true, prospectId: String(prospectId), source };
       }
       return { exists: false };
     }
     
     // Handle object response
     const prospectId = data.ProspectID;
+    const source = extractSource(data);
     if (prospectId) {
-      return { exists: true, prospectId: String(prospectId) };
+      return { exists: true, prospectId: String(prospectId), source };
     }
     
     return { exists: false };
@@ -71,12 +87,12 @@ export async function sendToLeadSquared(
     const accessKey = process.env.LEADSQUARED_ACCESS_KEY || 'u$r2e5ec027d3c73d3df288f62f2682925a';
     const secretKey = process.env.LEADSQUARED_SECRET_KEY || 'b9b4d1c24524f817b1b57f22972c097e52e2a16e';
     const host = process.env.LEADSQUARED_HOST || 'https://api-in21.leadsquared.com/v2';
+    const normalizedHost = host.replace(/\/$/, '');
 
     // Check if lead exists by email address
     console.log('🔍 Checking if lead exists in LeadSquared by email address...');
-    const leadCheckResult = await checkLeadExists(email, accessKey, secretKey, host);
-    const leadExists = leadCheckResult.exists;
-    const prospectId = leadCheckResult.prospectId;
+    const leadCheckResult = await checkLeadExists(email, accessKey, secretKey, normalizedHost);
+    const { exists: leadExists, prospectId, source } = leadCheckResult;
     
     // Generate timestamp for test
     const timestamp = new Date().toISOString();
@@ -84,9 +100,10 @@ export async function sendToLeadSquared(
     let requestBody: Array<{ Attribute: string; Value: string }>;
 
     if (leadExists && prospectId) {
-      // EXISTING LEAD: Use minimal payload (only test-related fields) with ProspectID
-      console.log('📝 Lead exists - using minimal payload (updating test fields only)');
+      // EXISTING LEAD: Use minimal payload (only test-related fields) with ProspectID and existing Source if present
+      console.log('📝 Existing lead detected');
       console.log('  - ProspectID:', prospectId);
+      console.log('  - Existing Source:', source || 'not set');
       requestBody = [
         {
           Attribute: 'ProspectID',
@@ -109,6 +126,12 @@ export async function sendToLeadSquared(
           Value: timestamp
         }
       ];
+      if (source) {
+        requestBody.push({
+          Attribute: 'Source',
+          Value: source
+        });
+      }
     } else {
       // NEW LEAD: Use full payload
       console.log('🆕 New lead - using full payload');
@@ -165,7 +188,7 @@ export async function sendToLeadSquared(
     }
 
     // Build the API URL with Lead.Capture and LeadUpdateBehavior parameter
-    const apiUrl = `${host}/LeadManagement.svc/Lead.Capture?accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}&LeadUpdateBehavior=DoNotUpdateUniqueFields`;
+    const apiUrl = `${normalizedHost}/LeadManagement.svc/Lead.Capture?accessKey=${encodeURIComponent(accessKey)}&secretKey=${encodeURIComponent(secretKey)}&LeadUpdateBehavior=DoNotUpdateUniqueFields`;
 
     console.log('📤 Sending data to LeadSquared CRM...');
     console.log('  - Email:', email);
