@@ -502,7 +502,7 @@ function generateHTMLContent(results: any): string {
           <text x="${center}" y="${center - 8}" text-anchor="middle" dominant-baseline="middle" 
                 font-size="28" font-weight="900" fill="${color}" font-family="Poppins, sans-serif">${score}%</text>
           <text x="${center}" y="${center + 18}" text-anchor="middle" dominant-baseline="middle" 
-                font-size="11" font-weight="700" fill="#64748b" font-family="Poppins, sans-serif" letter-spacing="1px">CRI</text>
+                font-size="11" font-weight="700" fill="#ffffff" font-family="Poppins, sans-serif" letter-spacing="1px">CRI</text>
         </svg>
         <div class="readiness-level-badge">
           <span class="readiness-level-text">${readinessLevel}</span>
@@ -769,9 +769,6 @@ function generateHTMLContent(results: any): string {
       // Determine match strength
       const matchStrength = matchScore >= 80 ? 'Strong Fit' : matchScore >= 70 ? 'Good Fit' : matchScore >= 60 ? 'Moderate Fit' : 'Fair Fit';
 
-      // Get fit summary (first sentence from description) - do not truncate to avoid abrupt cutoffs
-      const fitSummary = description.split('.')[0];
-
       // Determine progress bar color
       const progressColor = matchScore >= 80 ? '#2ECC71' : matchScore >= 70 ? '#F1C40F' : '#0066CC';
 
@@ -834,15 +831,6 @@ function generateHTMLContent(results: any): string {
                 <span class="metric-label">Language</span>
                 <span class="metric-value">${metrics.language}</span>
               </div>
-            </div>
-          </div>
-          
-          <!-- Fit Summary -->
-          <div class="country-fit-summary">
-            <div class="fit-summary-icon">💡</div>
-            <div class="fit-summary-content">
-              <span class="fit-summary-label">Fit Summary:</span>
-              <p class="fit-summary-text">${fitSummary}</p>
             </div>
           </div>
           
@@ -1740,10 +1728,10 @@ function generateHTMLContent(results: any): string {
                 right: 0;
                 background: linear-gradient(135deg, #0066CC 0%, #0066CC 50%, #2ECC71 100%);
                 color: white;
-                padding: 8px 20px;
+                padding: 10px 20px;
                 text-align: center;
                 font-size: 9pt;
-                height: 50px;
+                height: 58px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -1753,7 +1741,7 @@ function generateHTMLContent(results: any): string {
             
             .disclaimer {
                 position: absolute;
-                bottom: 50px;
+                bottom: 60px;
                 left: 20px;
                 right: 20px;
                 background: linear-gradient(135deg, #fff9e6, #fff3cd);
@@ -2892,48 +2880,6 @@ read_file
                 border: 1px solid rgba(0,102,204,0.18);
             }
             
-            .country-fit-summary {
-                margin-top: 12px;
-                padding: 12px;
-                background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-                border-radius: 10px;
-                border-left: 4px solid #0066CC;
-                display: flex;
-                gap: 10px;
-            }
-            
-            .fit-summary-icon {
-                font-size: 1.5em;
-                line-height: 1;
-                flex-shrink: 0;
-            }
-            
-            .fit-summary-content {
-                flex: 1;
-                min-width: 0;
-            }
-            
-            .fit-summary-label {
-                font-size: 0.85em;
-                font-weight: 700;
-                color: #0066CC;
-                font-family: 'Poppins', sans-serif;
-                display: block;
-                margin-bottom: 6px;
-            }
-            
-            .fit-summary-text {
-                font-size: 0.85em;
-                color: #1e293b;
-                font-weight: 500;
-                font-family: 'Inter', sans-serif;
-                line-height: 1.4;
-                margin: 0;
-                white-space: normal;
-                word-break: break-word;
-                overflow-wrap: anywhere;
-            }
-            
             .country-challenges-note {
                 margin-top: 10px;
                 padding: 10px;
@@ -3321,8 +3267,8 @@ read_file
                         <div class="info-value">${studentEmail}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Phone Number</div>
-                        <div class="info-value">${studentPhone}</div>
+                        <div class="info-label">Student Name</div>
+                        <div class="info-value">${studentName}</div>
                     </div>
                 </div>
                 
@@ -3352,7 +3298,10 @@ read_file
                     </div>
                     <span>D-Vivid Consultant - Your Gateway to Global Education</span>
                 </div>
-                <div>Report Generated: ${currentDate}</div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                    <div>Report Generated: ${currentDate}</div>
+                    <div>Phone: +91 75750 20920</div>
+                </div>
             </div>
         </div>
         
@@ -3435,11 +3384,14 @@ read_file
             <div class="footer">
                 <div style="display: flex; align-items: center;">
                     <div class="footer-logo">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9InVybCgjZ3JhZGllbnQwX2xpbmVhcl8xXzEpIi8+CjxwYXRoIGQ9Ik0xMiAxNkgxNlYyNEgxMlYxNloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0yNCAxNkgyOFYyNEgyNFYxNloiIGZpbGw9IndoaXRlIi/+CjxwYXRoIGQ9Ik0xNiAxMkgyNFYxNkgxNlYxMloiIGZpbGw9IndoaXRlIi/+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50MF9saW5lYXJfMV8xIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMwMDNCOEMiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNUJFOEI5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+" alt="D-Vivid Logo"/>
+                        <img src="${logoDataURI}" alt="D-Vivid Logo"/>
                     </div>
                     <span>D-Vivid Consultant - Your Gateway to Global Education</span>
                 </div>
-                <div>Report Generated: ${currentDate}</div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                    <div>Report Generated: ${currentDate}</div>
+                    <div>Phone: +91 75750 20920</div>
+                </div>
             </div>
             
             <!-- Final Contact Page -->
@@ -3540,6 +3492,19 @@ read_file
                             <span class="arrow">→</span>
                         </a>
                     </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div style="display: flex; align-items: center;">
+                    <div class="footer-logo">
+                        <img src="${logoDataURI}" alt="D-Vivid Logo"/>
+                    </div>
+                    <span>D-Vivid Consultant - Your Gateway to Global Education</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                    <div>Report Generated: ${currentDate}</div>
+                    <div>Phone: +91 75750 20920</div>
                 </div>
             </div>
         </div>
