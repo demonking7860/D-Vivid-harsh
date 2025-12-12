@@ -84,8 +84,8 @@ export async function sendToLeadSquared(
 ): Promise<void> {
   try {
     // Get credentials from environment variables with fallback to provided defaults
-    const accessKey = process.env.LEADSQUARED_ACCESS_KEY || 'u$r2e5ec027d3c73d3df288f62f2682925a';
-    const secretKey = process.env.LEADSQUARED_SECRET_KEY || 'b9b4d1c24524f817b1b57f22972c097e52e2a16e';
+    const accessKey = process.env.LEADSQUARED_ACCESS_KEY || 'u$r8f03e27b38208d84fbe8d069336f2227';
+    const secretKey = process.env.LEADSQUARED_SECRET_KEY || 'bb7af308a36a8243930e8f66617a92933bcb7248';
     const host = process.env.LEADSQUARED_HOST || 'https://api-in21.leadsquared.com/v2';
     const normalizedHost = host.replace(/\/$/, '');
 
