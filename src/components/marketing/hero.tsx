@@ -113,10 +113,20 @@ const ConsultationCard = dynamic(() => import("./consultation-card"), {
 const Hero = () => {
     const [openConsultation, setOpenConsultation] = useState(false);
 
+    const scrollToTest = () => {
+        const testSection = document.getElementById('psychometric-test');
+        if (testSection) {
+            testSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div className="flex flex-col items-center text-center w-full max-w-5xl my-24 mx-auto z-40 relative">
             <Container delay={0.0}>
-                <div className="pl-2 pr-1 py-1 rounded-full border border-foreground/10 hover:border-foreground/15 backdrop-blur-lg cursor-pointer flex items-center gap-2.5 select-none w-max mx-auto">
+                <div 
+                    onClick={() => setOpenConsultation(true)}
+                    className="pl-2 pr-1 py-1 rounded-full border border-foreground/10 hover:border-foreground/15 hover:bg-foreground/5 backdrop-blur-lg cursor-pointer flex items-center gap-2.5 select-none w-max mx-auto transition-all duration-300"
+                >
                     <div className="w-3.5 h-3.5 rounded-full bg-primary/40 flex items-center justify-center relative">
                         <div className="w-2.5 h-2.5 rounded-full bg-primary/60 flex items-center justify-center animate-ping">
                             <div className="w-2.5 h-2.5 rounded-full bg-primary/60 flex items-center justify-center animate-ping"></div>
@@ -127,7 +137,7 @@ const Hero = () => {
                     <span className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#b2a8fd] via-[#8678f9] to-[#c7d2fe] bg-clip-text text-sm text-transparent">
                         The most trusted consultant in India
                         <span className="text-xs text-secondary-foreground px-1.5 py-0.5 rounded-full bg-gradient-to-b from-foreground/20 to-foreground/10 flex items-center justify-center">
-                            Trusted
+                            Book Free Consultation
                             <ArrowRightIcon className="w-3.5 h-3.5 ml-1 text-foreground/50" />
                         </span>
                     </span>
@@ -148,8 +158,8 @@ const Hero = () => {
             </Container>
             <Container delay={0.2}>
                 <div className="flex items-center justify-center mt-8">
-                    <Button onClick={() => setOpenConsultation(true)} size="lg" className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-500 hover:to-violet-600 text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105">
-                        Book a Free Consultation
+                    <Button onClick={scrollToTest} size="lg" className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-500 hover:to-violet-600 text-white px-8 py-6 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105">
+                        Take Your Psychometric Test
                         <ArrowRightIcon className="w-5 h-5 ml-2" />
                     </Button>
                 </div>

@@ -273,7 +273,7 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
                 { role: "user", content: userPrompt }
                 ],
             temperature: 0.2,  // Lower for more consistent JSON
-            max_tokens: 2600   // Reduced since prompts are shorter
+            max_tokens: 2700   // Reduced since prompts are shorter
               });
               
               const timeoutPromise = new Promise((_, reject) => 

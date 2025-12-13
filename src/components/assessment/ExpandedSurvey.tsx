@@ -553,8 +553,35 @@ export default function ExpandedSurvey() {
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // User data will be stored in localStorage and written to Sheets when PDF is generated
+      // Send lead data to LeadSquared CRM immediately (before test starts)
+      try {
+        const response = await fetch('/api/create-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: userInfo.name,
+            email: userInfo.email,
+            phone: userInfo.mobile,
+            surveyType: 'Expanded'
+          })
+        });
+        const result = await response.json();
+        console.log('📤 Lead sent to CRM:', result);
+      } catch (error) {
+        console.error('⚠️ Failed to send lead to CRM, continuing with test:', error);
+        // Don't block user from taking test if CRM fails
+      }
+
       setStep('survey');
+      // Scroll to show the question section after form submission
+      setTimeout(() => {
+        const testSection = document.getElementById('psychometric-test');
+        if (testSection) {
+          const yOffset = 200; // Offset to show questions, not just the heading
+          const y = testSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 150);
     }
   };
 
