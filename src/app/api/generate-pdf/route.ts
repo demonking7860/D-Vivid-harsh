@@ -380,15 +380,90 @@ function generateHTMLContent(results: any): string {
 
   const countryFit = results['Country Fit (Top 3)'] || [];
 
-  // Helper to format text into bullet points
+  // ============= STRUCTURED ARRAY FORMATTERS =============
+  
+  // Format structured Strengths array: [{dimension, score, insight}]
+  const formatStructuredStrengths = (strengths: any): string => {
+    if (!strengths) {
+      return `<li class="bullet-item">Information not available</li>`;
+    }
+    
+    // Handle new structured array format
+    if (Array.isArray(strengths) && strengths.length > 0 && typeof strengths[0] === 'object' && strengths[0].dimension) {
+      return strengths.map((s: {dimension: string, score: number, insight: string}) => 
+        `<li class="bullet-item"><strong>${s.dimension} (${s.score}%):</strong> ${s.insight}</li>`
+      ).join('');
+    }
+    
+    // Fallback to legacy string format
+    return formatToBulletPoints(strengths);
+  };
+  
+  // Format structured Gaps array: [{dimension, score, risk, action}]
+  const formatStructuredGaps = (gaps: any): string => {
+    if (!gaps) {
+      return `<li class="bullet-item">Information not available</li>`;
+    }
+    
+    // Handle new structured array format
+    if (Array.isArray(gaps) && gaps.length > 0 && typeof gaps[0] === 'object' && gaps[0].dimension) {
+      return gaps.map((g: {dimension: string, score: number, risk: string, action: string}) => 
+        `<li class="bullet-item"><strong>${g.dimension} (${g.score}%):</strong> ${g.risk} <em>Action: ${g.action}</em></li>`
+      ).join('');
+    }
+    
+    // Fallback to legacy string format
+    return formatToBulletPoints(gaps);
+  };
+  
+  // Format structured Recommendations array: [{priority, timeframe, action, outcome}]
+  const formatStructuredRecommendations = (recs: any): string => {
+    if (!recs) {
+      return `<li class="bullet-item">Information not available</li>`;
+    }
+    
+    // Handle new structured array format
+    if (Array.isArray(recs) && recs.length > 0 && typeof recs[0] === 'object' && recs[0].timeframe) {
+      return recs.map((r: {priority: number, timeframe: string, action: string, outcome: string}) => 
+        `<li class="bullet-item"><strong>${r.timeframe}:</strong> ${r.action} → <em>${r.outcome}</em></li>`
+      ).join('');
+    }
+    
+    // Fallback to legacy string format
+    return formatToBulletPoints(recs);
+  };
+  
+  // Format structured country reasoning array: string[]
+  const formatCountryReasoning = (reasoning: any): string => {
+    if (!reasoning) {
+      return '<ul class="country-bullet-list"><li class="country-bullet-item">Good study destination</li></ul>';
+    }
+    
+    // Handle new array format (array of strings)
+    if (Array.isArray(reasoning)) {
+      return `<ul class="country-bullet-list">${reasoning.map((bullet: string) => 
+        `<li class="country-bullet-item">${bullet}</li>`
+      ).join('')}</ul>`;
+    }
+    
+    // Fallback to legacy string format
+    return formatDescriptionToBullets(reasoning);
+  };
+
+  // Legacy helper to format text into bullet points (backward compatibility)
   const formatToBulletPoints = (text: string | string[] | undefined) => {
     if (!text) {
       return `<li class="bullet-item">Information not available</li>`;
     }
 
-    // Handle array input
+    // Handle simple array of strings
     if (Array.isArray(text)) {
-      return text.map(item => `<li class="bullet-item">${item.trim()}</li>`).join('');
+      return text.map(item => {
+        if (typeof item === 'string') {
+          return `<li class="bullet-item">${item.trim()}</li>`;
+        }
+        return `<li class="bullet-item">${JSON.stringify(item)}</li>`;
+      }).join('');
     }
 
     // Handle string input
@@ -754,7 +829,15 @@ function generateHTMLContent(results: any): string {
     return countries.map((countryData, index) => {
       const country = typeof countryData === 'string' ? countryData : countryData.country;
       const matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : parseScore(countryData.match || 100);
-      const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
+      // Handle new array format for reasoning
+      let description: string;
+      if (typeof countryData === 'string') {
+        description = 'Well-suited destination for study abroad';
+      } else if (Array.isArray(countryData.reasoning)) {
+        description = countryData.reasoning.join('. ');
+      } else {
+        description = countryData.reasoning || 'Good study destination';
+      }
       const challenges = typeof countryData === 'object' ? countryData.challenges : '';
 
       // Load country flag
@@ -846,20 +929,29 @@ function generateHTMLContent(results: any): string {
     }).join('');
   };
 
-  // Helper to generate country matrix - now supports both string and object formats
+  // Helper to generate country matrix - now supports both string, object, and array formats
   const generateCountryMatrix = (countries: any[]) => {
     return countries.map((countryData, index) => {
       // Handle both old format (string) and new format (object)
       const country = typeof countryData === 'string' ? countryData : countryData.country;
       let matchScore = typeof countryData === 'string' ? Math.round(100 - (index * 15)) : countryData.match || 100;
       matchScore = parseScore(matchScore); // Ensure it's a number
-      const description = typeof countryData === 'string' ? 'Well-suited destination for study abroad' : (countryData.reasoning || 'Good study destination');
+      
+      // Handle new array format for reasoning
+      let reasoning: any;
+      if (typeof countryData === 'string') {
+        reasoning = 'Well-suited destination for study abroad';
+      } else if (Array.isArray(countryData.reasoning)) {
+        reasoning = countryData.reasoning; // Keep as array for formatCountryReasoning
+      } else {
+        reasoning = countryData.reasoning || 'Good study destination';
+      }
 
       // Load the country flag SVG
       const countryFlag = loadCountryFlagSVG(country);
 
-      // Format description as bullet points
-      const descriptionBullets = formatDescriptionToBullets(description);
+      // Format reasoning as bullet points (handles both array and string)
+      const descriptionBullets = formatCountryReasoning(reasoning);
 
       return `
         <div class="country-matrix-item">
@@ -3339,7 +3431,7 @@ read_file
                 <div class="analysis-section strengths">
                     <h4>Key Strengths</h4>
                     <ul class="bullet-list">
-                        ${formatToBulletPoints(strengths)}
+                        ${formatStructuredStrengths(strengths)}
                     </ul>
                 </div>
                 
@@ -3348,7 +3440,7 @@ read_file
                 <div class="analysis-section gaps">
                     <h4>Areas for Development</h4>
                     <ul class="bullet-list">
-                        ${formatToBulletPoints(gaps)}
+                        ${formatStructuredGaps(gaps)}
                     </ul>
                 </div>
                 
@@ -3357,7 +3449,7 @@ read_file
                 <div class="analysis-section recommendations">
                     <h4>Strategic Recommendations</h4>
                     <ul class="bullet-list">
-                        ${formatToBulletPoints(recommendations)}
+                        ${formatStructuredRecommendations(recommendations)}
                     </ul>
                 </div>
                 

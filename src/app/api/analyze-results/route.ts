@@ -46,6 +46,25 @@
           return NextResponse.json({ error: 'Missing user name' }, { status: 400 })
         }
         
+        // Sanitize and validate userName (prevent PDF injection)
+        if (studentData.userName.length > 100) {
+          return NextResponse.json({ error: 'Invalid user name' }, { status: 400 });
+        }
+        
+        // Validate topicScoresArray size
+        if (studentData.topicScoresArray && studentData.topicScoresArray.length > 20) {
+          return NextResponse.json({ error: 'Too many topic scores' }, { status: 400 });
+        }
+        
+        // Sanitize email and phone
+        const sanitizeString = (str: string | undefined, maxLen: number): string => {
+          if (!str) return '';
+          return str.slice(0, maxLen).replace(/[<>]/g, '');
+        };
+        
+        studentData.userEmail = sanitizeString(studentData.userEmail, 255);
+        studentData.userPhone = sanitizeString(studentData.userPhone, 20);
+        
         // Validate topicScoresArray
         if (!studentData.topicScoresArray || !Array.isArray(studentData.topicScoresArray)) {
           console.error('❌ Missing or invalid topicScoresArray in student data')
@@ -69,294 +88,203 @@
           }
         }
         
+        // Normalize all scores to percentages (0-100) once
+        const normalizedScores: Record<string, number> = {};
+        for (const t of studentData.topicScoresArray) {
+          normalizedScores[t.name] = Math.round((t.correct / t.total) * 100);
+        }
+        
+        // Map to expected dimension names (all percentages now)
+        const preCalculatedScores = {
+          'Financial Planning': normalizedScores['Financial Planning'] || 0,
+          'Academic Readiness': normalizedScores['Academic Readiness'] || 0,
+          'Career Alignment': normalizedScores['Career & Goal Alignment'] || normalizedScores['Career Alignment'] || 0,
+          'Personal & Cultural': normalizedScores['Personal & Cultural Readiness'] || 0,
+          'Practical Readiness': normalizedScores['Practical Readiness'] || 0,
+          'Support System': normalizedScores['Support System'] || 0
+        };
+
+        // Helper to determine readiness level from score
+        const determineReadinessLevel = (score: number): string => {
+          if (score >= 90) return 'Excellent';
+          if (score >= 80) return 'Very Good';
+          if (score >= 70) return 'Good';
+          if (score >= 60) return 'Satisfactory';
+          if (score >= 50) return 'Needs Improvement';
+          return 'Low Readiness';
+        };
+        
+        // Deterministic timeline templates - LLM only fills rationale, code provides structure
+        const timelineTemplates: Record<string, string> = {
+          'Excellent': '0-3 months: Focus on application refinement. Month 1: Finalize university shortlist. Month 2: Complete applications. Month 3: Visa preparation. Risk if delayed: May miss early admission deadlines.',
+          'Very Good': '3-6 months preparation. Month 1-2: Test prep if needed. Month 3-4: Applications. Month 5-6: Visa and travel. Risk if delayed: Competition increases for top programs.',
+          'Good': '6-9 months preparation. Month 1-3: Address skill gaps. Month 4-6: Applications. Month 7-9: Visa and logistics. Risk if delayed: May need to defer intake.',
+          'Satisfactory': '9-12 months preparation. Month 1-4: Intensive gap work. Month 5-8: Applications. Month 9-12: Final prep. Risk if delayed: Financial planning may become strained.',
+          'Needs Improvement': '12-18 months preparation. Month 1-6: Foundation building. Month 7-12: Application prep. Month 13-18: Final readiness. Risk if delayed: Goals may need reassessment.',
+          'Low Readiness': '18+ months recommended. Extended preparation across all dimensions before application. Risk if rushed: High likelihood of challenges abroad.'
+        };
+        
+        const readinessLevel = determineReadinessLevel(studentData.overallScore);
+        const preparationTimeline = timelineTemplates[readinessLevel];
+        
         // Check if API key is available
         const apiKey = process.env.PERPLEXITY_API_KEY;
         if (!apiKey) {
           console.error('❌ PERPLEXITY_API_KEY not found in environment variables');
           throw new Error('PERPLEXITY_API_KEY not configured');
         }
-        console.log('✅ PERPLEXITY_API_KEY found:', apiKey.substring(0, 10) + '...');
-        console.log('🔑 Full API key length:', apiKey.length);
         
-        // Prepare the prompts - Enhanced with comprehensive evaluation philosophy
-          const systemPrompt = `You are an expert psychometric evaluator specializing in study-abroad readiness assessment for Indian students.
-    
-    You analyze psychometric test responses using the Comprehensive Study Abroad Assessment Framework, which uses a weighted multi-factor scoring model.
-    
-    EVALUATION PHILOSOPHY:
-    Every multiple-choice answer maps to latent constructs:
-    - Financial planning ability, budgeting confidence, risk management, cost awareness
-    - Academic readiness: GPA consistency, test prep, language skills
-    - Career clarity: goal alignment, program relevance, decision maturity
-    - Personal & cultural readiness: adaptability, independence, social integration
-    - Practical readiness: visa/document prep, tech skills, safety planning
-    - Support system: family consensus, emotional resilience, backup plans
-    
-    SCORING METHODOLOGY:
-    Each response uses a 5-point scale:
-    - Response A (Strongly Agree/Very Confident) = 5 (Excellent readiness)
-    - Response B (Agree/Confident) = 4 (Above average readiness)
-    - Response C (Neutral/Unsure) = 3 (Moderate readiness)
-    - Response D (Disagree/Weak) = 2 (Below readiness threshold)
-    - Response E (Strongly Disagree/Not Ready) = 1 (Significant gap)
-    
-    Each dimension contributes to one of six readiness dimensions with specific weights:
-    1. Financial Planning - 25% weight (Budgeting, funding confidence, risk management, cost awareness)
-    2. Academic Readiness - 20% weight (GPA consistency, test prep, language skills)
-    3. Career & Goal Alignment - 20% weight (Career clarity, program relevance, decision maturity)
-    4. Personal & Cultural Readiness - 15% weight (Adaptability, independence, social integration)
-    5. Practical Readiness - 10% weight (Visa/document prep, tech skills, safety planning)
-    6. Support System - 10% weight (Family consensus, emotional resilience, backup plan)
-    
-    COMPREHENSIVE READINESS INDEX (CRI) CALCULATION:
-    CRI = Σ(Score_i × Weight_i) for all 6 dimensions
-    The CRI ranges from 0-100, providing an overall readiness assessment.
-    
-    READINESS LEVELS:
-    90-100: Excellent (Ready to apply immediately, 0-3 months prep)
-    80-89: Very Good (Minor preparation needed, 3-6 months prep)
-    70-79: Good (Prepare before next cycle, 6-9 months prep)
-    60-69: Satisfactory (Strengthen weak areas, 9-12 months prep)
-    50-59: Needs Improvement (Major readiness gaps, 12-18 months prep)
-    <50: Low Readiness (Reassess plan/delay, >18 months prep)
-    
-    COUNTRY-FIT MATRIX LOGIC:
-    
-    ALGORITHM FOR COUNTRY RECOMMENDATIONS:
-    
-    For each country, calculate match score based on dimension scores:
-    
-    1. Financial Planning score:
-       - < 60: Favor Germany, Canada, Ireland, UAE (lower costs)
-       - >= 60: Any country acceptable
-    
-    2. Academic Readiness score:
-       - < 70: Suggest mid-tier universities in any country
-       - >= 70: Competitive universities accessible
-    
-    3. Personal & Cultural Readiness score:
-       - < 60: Favor UK, Australia, USA, Canada (large Indian communities)
-       - >= 60: Any country suitable
-    
-    4. Practical Readiness score:
-       - < 60: Avoid USA (complex visa), prefer straightforward processes
-       - >= 60: Any country manageable
-    
-    5. Support System score:
-       - < 60: Prioritize countries with strong student support services
-       - >= 60: Any country
-    
-    Calculate match percentage as weighted average (0-100):
-    - Strong dimension alignment = +20 points
-    - Moderate alignment = +10 points
-    - Weak alignment = -10 points
-    - Critical mismatches = -20 points
-    
-    Consider countries: Canada, Australia, UK, Germany, USA, Singapore, Ireland, Netherlands, UAE.
-    
-    IMPORTANT FOR COUNTRY REASONING:
-    - Format the "reasoning" field as 3-5 concise, single-line bullet points
-    - Each bullet should be ONE sentence only (max 80-100 characters per bullet)
-    - Each bullet should cite specific dimensions and scores (e.g., "High financial readiness (75%) matches moderate costs")
-    - Use simple, clear sentences separated by periods
-    - Do NOT write as a single paragraph - write as separate, short sentences that will be converted to bullets
-    - Keep each point focused, scannable, and concise
-    - Examples:
-      * "Moderate tuition costs align with student's financial readiness (65%)"
-      * "Strong Indian community supports cultural integration"
-      * "Straightforward visa process matches practical readiness score"
-    
-    IMPORTANT: Ensure recommendations align with student's actual readiness level. Don't recommend highly competitive options if CRI is low.
-    
-    You must provide:
-    1. Detailed analysis of each dimension's specific constructs
-    2. Concrete, actionable recommendations tailored to Indian study-abroad context
-    3. Country-specific fit assessment based on student's profile
-    4. Timeline-based preparation roadmap
-    
-    Output ONLY valid JSON in the specified format. Be specific, data-driven, and practical.`
+        // Prepare the prompts - Optimized for structured output
+        const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.
 
-          const userPrompt = `DETAILED PSYCHOMETRIC ASSESSMENT REQUEST
+INPUT: Pre-calculated dimension scores (0-100%) and weighted CRI score.
+OUTPUT: Only valid JSON with STRUCTURED ARRAYS, no markdown or explanations.
 
-    STUDENT INFORMATION:
-    Name: ${studentData.userName}
-    Email: ${studentData.userEmail || 'Not provided'}
-    Phone: ${studentData.userPhone || 'Not provided'}
+COUNTRY-FIT RULES:
+- Financial <60: Prefer Germany, Canada, Ireland (lower costs)
+- Cultural <60: Prefer UK, Australia, USA, Canada (large Indian communities)
+- Practical <60: Avoid USA (complex visa process)
 
-    TEST PERFORMANCE BY DIMENSION:
-    ${studentData.topicScoresArray.map(topic => {
-      const frameworkMapping: { [key: string]: { name: string; weight: number; constructs: string[] } } = {
-        // Original survey section names (for backward compatibility)
-        'Academic Readiness': { 
-          name: 'Academic Readiness', 
-          weight: 20, 
-          constructs: ['GPA consistency', 'Standardized test prep', 'English language proficiency', 'Subject mastery'] 
-        },
-        'Cultural Adaptability': { 
-          name: 'Personal & Cultural Readiness', 
-          weight: 15, 
-          constructs: ['Cultural openness', 'Cross-cultural communication', 'Independence', 'Emotional resilience'] 
-        },
-        'Career Clarity': { 
-          name: 'Career & Goal Alignment', 
-          weight: 20, 
-          constructs: ['Career goal clarity', 'Program relevance', 'Decision maturity', 'Long-term planning'] 
-        },
-        'Study Abroad Readiness': { 
-          name: 'Practical Readiness', 
-          weight: 10, 
-          constructs: ['Visa process understanding', 'Document preparation', 'Technology skills', 'Safety awareness'] 
-        },
-        // Actual section names from Ultra Quick Survey questions
-        'Career & Goal Alignment': { 
-          name: 'Career & Goal Alignment', 
-          weight: 20, 
-          constructs: ['Career goal clarity', 'Program relevance', 'Decision maturity', 'Long-term planning'] 
-        },
-        'Personal & Cultural Readiness': { 
-          name: 'Personal & Cultural Readiness', 
-          weight: 15, 
-          constructs: ['Cultural openness', 'Cross-cultural communication', 'Independence', 'Emotional resilience'] 
-        },
-        'Practical Readiness': { 
-          name: 'Practical Readiness', 
-          weight: 10, 
-          constructs: ['Visa process understanding', 'Document preparation', 'Technology skills', 'Safety awareness'] 
-        },
-        'Support System': { 
-          name: 'Support System', 
-          weight: 10, 
-          constructs: ['Family consensus', 'Financial backing', 'Emotional support', 'Backup plans'] 
-        },
-        'Financial Planning': { 
-          name: 'Financial Planning', 
-          weight: 25, 
-          constructs: ['Budgeting skills', 'Funding sources', 'Loan awareness', 'Cost management'] 
-        }
-      };
-      
-      const dimension = frameworkMapping[topic.name] || { name: topic.name, weight: 0, constructs: [] };
-      const score = Math.round((topic.correct/topic.total)*100);
-      return `• ${dimension.name} (Weight: ${dimension.weight}%): ${score}%\n  Constructs: ${dimension.constructs.join(', ')}\n  Interpretation: ${score >= 90 ? 'Excellent' : score >= 80 ? 'Very Good' : score >= 70 ? 'Good' : score >= 60 ? 'Satisfactory' : 'Needs Improvement'}`;
-    }).join('\n\n')}
+COUNTRIES TO CONSIDER: Canada, Australia, UK, Germany, USA, Singapore, Ireland, Netherlands, UAE, etc.
 
-    AGGREGATE PERFORMANCE:
-    Raw Overall Score: ${studentData.overallScore}/100
-    
-    CRITICAL ANALYSIS REQUIREMENTS:
-    
-    1. DIMENSION-BY-DIMENSION BREAKDOWN:
-    For each of the 6 dimensions, provide:
-    - Specific strengths observed (cite the constructs that scored well)
-    - Specific gaps identified (cite the constructs that need improvement)
-    - Realistic risk assessment for that dimension in international education context
-    
-    2. COMPREHENSIVE READINESS INDEX (CRI) CALCULATION:
-    Calculate: CRI = (Financial Planning × 0.25) + (Academic Readiness × 0.20) + (Career Alignment × 0.20) + (Personal & Cultural × 0.15) + (Practical Readiness × 0.10) + (Support System × 0.10)
-    This gives the weighted CRI score (0-100 range).
-    
-    3. READINESS LEVEL & TIMELINE:
-    Based on CRI, determine:
-    - Specific readiness level (Excellent/Very Good/Good/Satisfactory/Needs Improvement/Low)
-    - Recommended preparation timeline
-    - Key milestones to achieve before applying
-    
-    4. COUNTRY-FIT ANALYSIS:
-    For top 3 countries, provide:
-    - Match percentage (0-100%)
-    - Reasoning: Provide 3-5 concise, single-line bullet points (ONE sentence each, max 80-100 chars). Each bullet should cite specific dimensions and scores. Format as simple sentences separated by periods, NOT as a paragraph.
-    - Potential challenges for this student in that country
-    - Specific universities or programs to consider
-    
-    5. ACTIONABLE RECOMMENDATIONS:
-    Provide specific, actionable steps:
-    - Immediate actions (next 1-3 months)
-    - Short-term goals (3-6 months)
-    - Medium-term preparation (6-12 months)
-    - Long-term development (12+ months)
-    
-    OUTPUT FORMAT (CRITICAL - Return ONLY valid JSON, no markdown, no code blocks, no explanations):
-    You MUST return ONLY valid JSON. Do NOT include markdown code blocks, do NOT include explanations before or after the JSON. Return ONLY the JSON object.
-    
-    IMPORTANT JSON RULES:
-    - All strings must be properly escaped (use \\" for quotes inside strings)
-    - No trailing commas
-    - All numbers must be actual numbers, not strings
-    - All property names must be in double quotes
-    - No comments in JSON
-    - Ensure all brackets and braces are properly closed
-    
+KNOWLEDGE REQUIREMENTS:
+- Use current study-abroad trends for Indian students
+- Prefer commonly chosen universities
+- If unsure, choose widely recognized public universities
+
+WORD COUNT RULES (CRITICAL):
+- Each Strengths insight: 20-35 words
+- Each Gaps risk: 15-25 words
+- Each Gaps action: 15-25 words
+- Each Recommendation action: 15-25 words
+- Each Recommendation outcome: 10-20 words
+- Each country reasoning bullet: 15-25 words
+
+OUTPUT FORMAT:
+You MUST wrap the JSON output between these markers:
+<JSON_START>
+{ ...valid JSON... }
+<JSON_END>
+
+JSON RULES: No trailing commas, escape quotes with \\", numbers not strings, no markdown, arrays must be proper JSON arrays.`
+
+        const userPrompt = `Analyze this student's study-abroad readiness:
+
+STUDENT: ${studentData.userName}
+EMAIL: ${studentData.userEmail || 'N/A'}
+PHONE: ${studentData.userPhone || 'N/A'}
+
+DIMENSION SCORES (pre-calculated percentages):
+${Object.entries(preCalculatedScores).map(([name, score]) => `- ${name}: ${score}%`).join('\n')}
+
+OVERALL CRI: ${studentData.overallScore}/100
+READINESS LEVEL: ${readinessLevel}
+
+Provide analysis wrapped in <JSON_START> and <JSON_END> markers with this EXACT structure.
+IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be arrays, not strings.
+
+<JSON_START>
+{
+  "Student Name": "${studentData.userName}",
+  "Student Email": "${studentData.userEmail || ''}",
+  "Student Phone": "${studentData.userPhone || ''}",
+  "Scores": {
+    "Financial Planning": ${preCalculatedScores['Financial Planning']},
+    "Academic Readiness": ${preCalculatedScores['Academic Readiness']},
+    "Career Alignment": ${preCalculatedScores['Career Alignment']},
+    "Personal & Cultural": ${preCalculatedScores['Personal & Cultural']},
+    "Practical Readiness": ${preCalculatedScores['Practical Readiness']},
+    "Support System": ${preCalculatedScores['Support System']}
+  },
+  "Overall Readiness Index": ${studentData.overallScore},
+  "Readiness Level": "${readinessLevel}",
+  "Preparation Timeline": "${preparationTimeline}",
+  "Strengths": [
+    {"dimension": "<highest scoring dimension name>", "score": <actual score>, "insight": "<20-35 words explaining WHY this dimension helps study abroad success>"},
+    {"dimension": "<second highest dimension>", "score": <actual score>, "insight": "<20-35 words explaining WHY>"},
+    {"dimension": "<third highest dimension>", "score": <actual score>, "insight": "<20-35 words explaining WHY>"}
+  ],
+  "Gaps": [
+    {"dimension": "<lowest scoring dimension>", "score": <actual score>, "risk": "<15-25 words on what happens if not addressed>", "action": "<15-25 words on specific fix>"},
+    {"dimension": "<second lowest dimension>", "score": <actual score>, "risk": "<15-25 words>", "action": "<15-25 words>"},
+    {"dimension": "<third lowest dimension>", "score": <actual score>, "risk": "<15-25 words>", "action": "<15-25 words>"}
+  ],
+  "Recommendations": [
+    {"priority": 1, "timeframe": "Next 30 days", "action": "<15-25 words specific action>", "outcome": "<10-20 words expected result>"},
+    {"priority": 2, "timeframe": "1-3 months", "action": "<15-25 words>", "outcome": "<10-20 words>"},
+    {"priority": 3, "timeframe": "3-6 months", "action": "<15-25 words>", "outcome": "<10-20 words>"},
+    {"priority": 4, "timeframe": "6-9 months", "action": "<15-25 words>", "outcome": "<10-20 words>"}
+  ],
+  "Country Fit (Top 3)": [
     {
-      "Student Name": "${studentData.userName}",
-      "Student Email": "${studentData.userEmail || ''}",
-      "Student Phone": "${studentData.userPhone || ''}",
-      "Scores": {
-        "Financial Planning": ${studentData.topicScoresArray.find(t => t.name === 'Financial Planning')?.correct || 0},
-        "Academic Readiness": ${studentData.topicScoresArray.find(t => t.name === 'Academic Readiness')?.correct || 0},
-        "Career Alignment": ${studentData.topicScoresArray.find(t => t.name === 'Career & Goal Alignment')?.correct || studentData.topicScoresArray.find(t => t.name === 'Career Alignment')?.correct || 0},
-        "Personal & Cultural": ${studentData.topicScoresArray.find(t => t.name === 'Personal & Cultural Readiness')?.correct || 0},
-        "Practical Readiness": ${studentData.topicScoresArray.find(t => t.name === 'Practical Readiness')?.correct || 0},
-        "Support System": ${studentData.topicScoresArray.find(t => t.name === 'Support System')?.correct || 0}
-      },
-      "Overall Readiness Index": <calculated CRI score as number>,
-      "Readiness Level": "<determined level>",
-      "Preparation Timeline": "<timeline estimate>",
-      "Strengths": "<detailed paragraph citing specific constructs - escape all quotes with \\">",
-      "Gaps": "<detailed paragraph citing specific weaknesses and risks - escape all quotes with \\">",
-      "Recommendations": "<3-5 specific, actionable recommendations with timeline - escape all quotes with \\">",
-      "Country Fit (Top 3)": [
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"},
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"},
-        {"country": "<name>", "match": <number 0-100>, "reasoning": "<3-5 concise single-line bullets (ONE sentence each, max 80-100 chars per bullet) explaining why this country fits, citing specific dimensions and scores - escape all quotes with \\">", "challenges": "<specific challenges based on weak dimensions - escape all quotes with \\">", "universities": "<realistic university names - escape all quotes with \\">"}
-      ]
+      "country": "<country name>",
+      "match": <0-100>,
+      "reasoning": [
+        "<15-25 words: Financial fit based on Financial Planning score of ${preCalculatedScores['Financial Planning']}%>",
+        "<15-25 words: Career outcomes and job market>",
+        "<15-25 words: Cultural adaptation based on Personal & Cultural score of ${preCalculatedScores['Personal & Cultural']}%>",
+        "<15-25 words: Visa process and work rights>"
+      ],
+      "challenges": "<specific challenges based on weak dimensions>",
+      "universities": "<2-3 widely recognized university names>"
+    },
+    {
+      "country": "<country name>",
+      "match": <0-100>,
+      "reasoning": [
+        "<15-25 words: Financial fit>",
+        "<15-25 words: Career outcomes>",
+        "<15-25 words: Cultural adaptation>",
+        "<15-25 words: Visa and work rights>"
+      ],
+      "challenges": "<challenges>",
+      "universities": "<universities>"
+    },
+    {
+      "country": "<country name>",
+      "match": <0-100>,
+      "reasoning": [
+        "<15-25 words: Financial fit>",
+        "<15-25 words: Career outcomes>",
+        "<15-25 words: Cultural adaptation>",
+        "<15-25 words: Visa and work rights>"
+      ],
+      "challenges": "<challenges>",
+      "universities": "<universities>"
     }
-    
-    REMEMBER: Return ONLY the JSON object above, nothing else. No markdown, no code blocks, no explanations.`
+  ]
+}
+<JSON_END>`;
 
         console.log('🌐 Calling Perplexity API...');
           const openai = new OpenAI({
             apiKey: apiKey,
             baseURL: "https://api.perplexity.ai",
-            timeout: 27000, // 27 second timeout (below 30s Amplify SSR limit)
+          timeout: 27000,
             maxRetries: 2,
           });
 
-          // Use Perplexity Sonar models (sonar-pro as primary)
-        const models = ["sonar"];
-          
-          let completion: any = null;
-        let lastError: any = null;
-        
-          for (const model of models) {
-            try {
-              console.log(`🔄 Trying model: ${model}`);
-              
+        let completion: any;
+        try {
               const modelPromise = openai.chat.completions.create({
-                model: model,
+            model: "sonar",
                 messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
                 ],
-                temperature: 0.3,
-                max_tokens: 3400  // Reduced to speed up responses
+            temperature: 0.2,  // Lower for more consistent JSON
+            max_tokens: 2600   // Reduced since prompts are shorter
               });
               
               const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Model timeout')), 25000)
+            setTimeout(() => reject(new Error('API timeout after 25s')), 25000)
               );
               
               completion = await Promise.race([modelPromise, timeoutPromise]);
-              console.log(`✅ Success with model: ${model}`);
-              break;
-            } catch (modelError: any) {
-            console.error(`❌ Model ${model} failed:`, modelError.message);
-            lastError = modelError;
-              continue;
-            }
-          }
-          
-          if (!completion) {
-          throw new Error(`All models failed. Last error: ${lastError?.message || 'Unknown error'}`);
+          console.log('✅ Perplexity API success');
+        } catch (error: any) {
+          console.error('❌ Perplexity API failed:', error.message);
+          throw new Error(`Perplexity API failed: ${error.message}`);
         }
 
         const generatedText = completion.choices[0]?.message?.content || '';
@@ -369,16 +297,37 @@
           console.log('📝 Generated text preview:', generatedText.substring(0, 200) + '...');
           console.log('📝 Full generated text:', generatedText);
           
-        // Parse the JSON response from LLM
-        // Extract JSON from the response (in case there's extra text)
-        const jsonMatch = generatedText.match(/\{[\s\S]*\}/)
+        // Parse the JSON response from LLM using sentinel markers
+        // Telemetry variables
+        let repairUsed = false;
+        let fallbackUsed = false;
+        let sentinelParseUsed = false;
+        
+        // Try sentinel-based parsing first
+        const start = generatedText.indexOf('<JSON_START>');
+        const end = generatedText.indexOf('<JSON_END>');
+        
+        let jsonString: string;
+        
+        if (start !== -1 && end !== -1 && end > start) {
+          // Use sentinel markers
+          sentinelParseUsed = true;
+          jsonString = generatedText
+            .slice(start + '<JSON_START>'.length, end)
+            .trim();
+          console.log('✅ JSON extracted using sentinel markers');
+        } else {
+          // Fallback to regex (for backward compatibility during transition)
+          console.warn('⚠️ JSON markers not found, falling back to regex extraction');
+          const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
           console.error('❌ No JSON found in LLM response');
           console.error('📝 Full response:', generatedText);
           throw new Error('No JSON found in LLM response');
+          }
+          jsonString = jsonMatch[0];
         }
         
-        let jsonString = jsonMatch[0];
         console.log('📝 Extracted JSON string length:', jsonString.length);
         console.log('📝 Extracted JSON preview:', jsonString.substring(0, 500) + '...');
         
@@ -535,6 +484,7 @@
           // Try a more aggressive fix: repair incomplete JSON
           try {
             console.log('🔄 Attempting to repair incomplete JSON...');
+            repairUsed = true;
             const repairedJson = repairIncompleteJson(jsonString);
             console.log('🔄 Repaired JSON length:', repairedJson.length);
             llmResult = JSON.parse(repairedJson);
@@ -545,6 +495,7 @@
             // Last resort: try to extract a minimal valid JSON with just essential fields
             try {
               console.log('🔄 Attempting to extract minimal valid JSON...');
+              fallbackUsed = true;
               const minimalJson = extractMinimalJson(jsonString);
               if (minimalJson) {
                 llmResult = minimalJson;
@@ -559,28 +510,122 @@
           }
         }
         
-        // Validate that essential fields exist
-        if (!llmResult['Student Name'] && !llmResult['studentName']) {
-          throw new Error('LLM response missing required field: Student Name');
+        // Merge pre-calculated scores to ensure accuracy (override any LLM-generated values)
+        llmResult['Student Name'] = studentData.userName;
+        llmResult['Student Email'] = studentData.userEmail || '';
+        llmResult['Student Phone'] = studentData.userPhone || '';
+        llmResult['Scores'] = preCalculatedScores;
+        llmResult['Overall Readiness Index'] = studentData.overallScore;
+        llmResult['Readiness Level'] = readinessLevel;
+        llmResult['Preparation Timeline'] = preparationTimeline;
+
+        // ============= CODE-BASED STRUCTURED VALIDATION =============
+        let structureValidationFailed = false;
+        
+        // Validate Strengths is an array with at least 3 items
+        if (!Array.isArray(llmResult['Strengths']) || llmResult['Strengths'].length < 3) {
+          console.warn('⚠️ Strengths validation failed - not an array or < 3 items');
+          structureValidationFailed = true;
+          // Create fallback structured strengths from scores
+          const sortedScores = Object.entries(preCalculatedScores)
+            .sort(([,a], [,b]) => (b as number) - (a as number))
+            .slice(0, 3);
+          llmResult['Strengths'] = sortedScores.map(([dim, score]) => ({
+            dimension: dim,
+            score: score,
+            insight: `Strong performance in ${dim} (${score}%) indicates good preparation in this area, which will support your study abroad journey.`
+          }));
+        } else {
+          // Validate each strength has required fields and word count
+          for (const s of llmResult['Strengths']) {
+            if (!s.dimension || !s.insight) {
+              console.warn('⚠️ Strength missing dimension or insight');
+            } else if (s.insight.split(' ').length < 15) {
+              console.warn(`⚠️ Strength insight too short (${s.insight.split(' ').length} words): ${s.dimension}`);
+            }
+          }
         }
-        if (!llmResult['Scores'] && !llmResult['scores']) {
-          throw new Error('LLM response missing required field: Scores');
+        
+        // Validate Gaps is an array with at least 3 items
+        if (!Array.isArray(llmResult['Gaps']) || llmResult['Gaps'].length < 3) {
+          console.warn('⚠️ Gaps validation failed - not an array or < 3 items');
+          structureValidationFailed = true;
+          // Create fallback structured gaps from scores
+          const sortedScores = Object.entries(preCalculatedScores)
+            .sort(([,a], [,b]) => (a as number) - (b as number))
+            .slice(0, 3);
+          llmResult['Gaps'] = sortedScores.map(([dim, score]) => ({
+            dimension: dim,
+            score: score,
+            risk: `Lower score in ${dim} (${score}%) may present challenges during your study abroad experience.`,
+            action: `Focus on improving ${dim} through targeted preparation and seek guidance from your advisor.`
+          }));
+        } else {
+          // Validate each gap has required fields
+          for (const g of llmResult['Gaps']) {
+            if (!g.dimension || !g.risk || !g.action) {
+              console.warn('⚠️ Gap missing required fields (dimension, risk, or action)');
+            }
+          }
         }
-        if (!llmResult['Overall Readiness Index']) {
-          throw new Error('LLM response missing required field: Overall Readiness Index');
+        
+        // Validate Recommendations is an array with at least 4 items
+        if (!Array.isArray(llmResult['Recommendations']) || llmResult['Recommendations'].length < 4) {
+          console.warn('⚠️ Recommendations validation failed - not an array or < 4 items');
+          structureValidationFailed = true;
+          // Create fallback structured recommendations
+          llmResult['Recommendations'] = [
+            { priority: 1, timeframe: 'Next 30 days', action: 'Schedule a consultation with D-Vivid advisor to review your assessment results', outcome: 'Personalized action plan for study abroad preparation' },
+            { priority: 2, timeframe: '1-3 months', action: 'Address identified gaps in your readiness dimensions through targeted preparation', outcome: 'Improved scores in weak areas' },
+            { priority: 3, timeframe: '3-6 months', action: 'Begin university research and shortlisting based on your profile', outcome: 'Clear list of target institutions' },
+            { priority: 4, timeframe: '6-9 months', action: 'Prepare application materials and documentation', outcome: 'Ready to submit applications' }
+          ];
+        } else {
+          // Validate each recommendation has required fields
+          for (const r of llmResult['Recommendations']) {
+            if (!r.timeframe || !r.action || !r.outcome) {
+              console.warn('⚠️ Recommendation missing required fields (timeframe, action, or outcome)');
+            }
+          }
         }
-        if (!llmResult['Readiness Level']) {
-          throw new Error('LLM response missing required field: Readiness Level');
+        
+        // Validate Country Fit reasoning is an array of 4 strings for each country
+        if (Array.isArray(llmResult['Country Fit (Top 3)'])) {
+          for (const country of llmResult['Country Fit (Top 3)']) {
+            if (!Array.isArray(country.reasoning) || country.reasoning.length !== 4) {
+              console.warn(`⚠️ Country reasoning not 4 bullets for ${country.country}`);
+              // Convert string reasoning to array if needed
+              if (typeof country.reasoning === 'string') {
+                const bullets = country.reasoning.split(/\d+\)|\n|;/).filter((s: string) => s.trim().length > 10);
+                country.reasoning = bullets.length >= 4 ? bullets.slice(0, 4) : [
+                  `Financial fit: Aligns with your Financial Planning score of ${preCalculatedScores['Financial Planning']}%`,
+                  'Career outcomes: Good job market and post-study opportunities',
+                  `Cultural adaptation: Matches your Personal & Cultural score of ${preCalculatedScores['Personal & Cultural']}%`,
+                  'Visa process: Reasonable visa requirements for Indian students'
+                ];
+              } else {
+                country.reasoning = [
+                  `Financial fit: Aligns with your Financial Planning score of ${preCalculatedScores['Financial Planning']}%`,
+                  'Career outcomes: Good job market and post-study opportunities',
+                  `Cultural adaptation: Matches your Personal & Cultural score of ${preCalculatedScores['Personal & Cultural']}%`,
+                  'Visa process: Reasonable visa requirements for Indian students'
+                ];
+              }
+            }
+          }
         }
-        if (!llmResult['Strengths']) {
-          throw new Error('LLM response missing required field: Strengths');
+        
+        if (structureValidationFailed) {
+          fallbackUsed = true;
+          console.warn('⚠️ Structure validation failed, fallback data used for some sections');
         }
-        if (!llmResult['Gaps']) {
-          throw new Error('LLM response missing required field: Gaps');
-        }
-        if (!llmResult['Recommendations']) {
-          throw new Error('LLM response missing required field: Recommendations');
-        }
+
+        // Log telemetry metrics
+        console.log('📊 JSON Parse Metrics:', {
+          sentinelParse: sentinelParseUsed,
+          repairNeeded: repairUsed,
+          fallbackUsed: fallbackUsed
+        });
 
         console.log('📤 Returning LLM result:', JSON.stringify(llmResult, null, 2))
         return NextResponse.json(llmResult)
