@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { google } from 'googleapis'
-import { updateLeadPdfUrl } from '@/lib/leadsquared'
+import { sendToLeadSquared } from '@/lib/leadsquared'
 
 // Google Sheets configuration
 const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U"
@@ -264,14 +264,13 @@ if (s3Bucket) {
       // Store in Google Sheets
       await storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url);
       
-      // Update existing lead in LeadSquared with PDF URL only
-      // (Lead was already created when user submitted the form before test)
-      await updateLeadPdfUrl(studentEmail, s3Url);
+      // Send all data to LeadSquared CRM (creates new lead or updates existing)
+      await sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url);
     } else {
       console.warn("⚠️ Email or phone missing - skipping Sheets storage and LeadSquared sync");
     }
 
-    console.log("✅ S3 upload, Sheets storage, and LeadSquared PDF URL update completed");
+    console.log("✅ S3 upload, Sheets storage, and LeadSquared sync completed");
   } catch (uploadErr) {
     console.error("❌ Failed to upload PDF to S3:");
     console.error("  Error Name:", (uploadErr as any).name);
