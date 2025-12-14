@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
@@ -715,6 +715,7 @@ export default function StudyAbroadSurvey() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
+  const isNavigatingRef = useRef(false);
 
   const currentQuestion = surveyQuestions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / surveyQuestions.length) * 100;
@@ -783,14 +784,22 @@ export default function StudyAbroadSurvey() {
   };
 
   const handleAnswerSelect = (answer: string) => {
+    if (isNavigatingRef.current) return; // Prevent multiple rapid calls
     setCurrentAnswer(answer);
+    isNavigatingRef.current = true;
+    // Automatically move to next question after a short delay
+    setTimeout(async () => {
+      await handleNext(answer);
+      isNavigatingRef.current = false;
+    }, 300);
   };
 
-  const handleNext = async () => {
-    if (currentAnswer) {
+  const handleNext = async (answerOverride?: string) => {
+    const answerToUse = answerOverride || currentAnswer;
+    if (answerToUse) {
       const newResponse: Response = {
         questionId: currentQuestion.id,
-        answer: currentAnswer,
+        answer: answerToUse,
         section: currentQuestion.section
       };
 
@@ -859,6 +868,7 @@ export default function StudyAbroadSurvey() {
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
+      isNavigatingRef.current = false; // Reset navigation flag
       // Save current answer if it exists
       if (currentAnswer) {
         const currentResponse: Response = {
@@ -1176,13 +1186,9 @@ export default function StudyAbroadSurvey() {
         >
           Previous
         </Button>
-        <Button 
-          onClick={handleNext}
-          disabled={!currentAnswer}
-          className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
-        >
-          {currentQuestionIndex === surveyQuestions.length - 1 ? 'Complete Assessment' : 'Next'}
-        </Button>
+        <div className="text-sm text-muted-foreground flex items-center">
+          Select an option to continue
+        </div>
       </div>
     </div>
   );
