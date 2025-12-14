@@ -598,11 +598,11 @@ function generateHTMLContent(results: any): string {
       { name: 'Support System', short: 'Support', icon: '🤝', score: parseScore(scores['Support System']), color: '#06b6d4' }
     ];
 
-    // Generate SVG radar chart - smaller size to fit with score cards on one page
-    const size = 350; // Reduced size to fit with score cards
+    // Generate SVG radar chart - larger size for better visibility
+    const size = 420;
     const centerX = size / 2;
     const centerY = size / 2;
-    const radius = size * 0.32; // Adjusted radius
+    const radius = size * 0.35;
     const angleStep = (2 * Math.PI) / categories.length;
 
     // Calculate points for radar polygon with individual colors per segment
@@ -638,14 +638,14 @@ function generateHTMLContent(results: any): string {
       const angle = (index * angleStep) - Math.PI / 2;
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
-      const labelX = centerX + Math.cos(angle) * (radius + 35);
-      const labelY = centerY + Math.sin(angle) * (radius + 35);
+      const labelX = centerX + Math.cos(angle) * (radius + 40);
+      const labelY = centerY + Math.sin(angle) * (radius + 40);
 
       return `
         <line x1="${centerX}" y1="${centerY}" x2="${x}" y2="${y}" 
-              stroke="${cat.color}" stroke-width="2" opacity="0.5"/>
+              stroke="${cat.color}" stroke-width="2.5" opacity="0.6"/>
         <text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" 
-              font-size="12" font-weight="700" fill="${cat.color}" font-family="Poppins, sans-serif">${cat.short}</text>
+              font-size="14" font-weight="800" fill="${cat.color}" font-family="Poppins, sans-serif">${cat.short}</text>
       `;
     }).join('');
 
@@ -653,7 +653,7 @@ function generateHTMLContent(results: any): string {
     const circles = [0.25, 0.5, 0.75, 1].map(scale => {
       const r = radius * scale;
       return `<circle cx="${centerX}" cy="${centerY}" r="${r}" 
-                      fill="none" stroke="#e5e7eb" stroke-width="1.5" opacity="0.4"/>`;
+                      fill="none" stroke="#d1d5db" stroke-width="2" opacity="0.5"/>`;
     }).join('');
 
     // Determine overall fill color based on average score
@@ -676,7 +676,7 @@ function generateHTMLContent(results: any): string {
       const distance = (cat.score / 100) * radius;
       const x = centerX + Math.cos(angle) * distance;
       const y = centerY + Math.sin(angle) * distance;
-      return `<circle cx="${x}" cy="${y}" r="8" fill="${cat.color}" stroke="white" stroke-width="2.5"/>`;
+      return `<circle cx="${x}" cy="${y}" r="10" fill="${cat.color}" stroke="white" stroke-width="3"/>`;
     }).join('')}
         </svg>
         <div class="radar-legend-enhanced">
@@ -1877,6 +1877,517 @@ function generateHTMLContent(results: any): string {
                 overflow: hidden;
             }
             
+            /* Cover Page Styles */
+            .cover-page-content {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 15px 30px 20px 30px;
+                min-height: calc(297mm - 220px);
+                background: linear-gradient(180deg, #ffffff 0%, #f8fbff 30%, #eef5ff 100%);
+                position: relative;
+                overflow: visible;
+            }
+            
+            .cover-page-content::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: 
+                    radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.03) 0%, transparent 50%),
+                    radial-gradient(circle at 90% 80%, rgba(46, 204, 113, 0.03) 0%, transparent 50%);
+                pointer-events: none;
+            }
+            
+            .cover-title-section {
+                text-align: center;
+                margin-bottom: 20px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .cover-main-title {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.8em;
+                font-weight: 900;
+                background: linear-gradient(90deg, #003B8C 0%, #0066CC 40%, #2ECC71 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin: 0 0 8px 0;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                line-height: 1.3;
+                display: inline-block;
+                padding-right: 5px;
+            }
+            
+            .cover-subtitle {
+                font-family: 'Poppins', sans-serif;
+                font-size: 1em;
+                color: #64748b;
+                font-weight: 600;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+            }
+            
+            .cover-divider {
+                width: 150px;
+                height: 4px;
+                background: linear-gradient(90deg, #003B8C, #F1C40F, #2ECC71);
+                margin: 15px auto;
+                border-radius: 2px;
+                position: relative;
+            }
+            
+            .cover-divider::before,
+            .cover-divider::after {
+                content: '';
+                position: absolute;
+                width: 8px;
+                height: 8px;
+                background: #F1C40F;
+                border-radius: 50%;
+                top: -2px;
+            }
+            
+            .cover-divider::before {
+                left: -12px;
+            }
+            
+            .cover-divider::after {
+                right: -12px;
+            }
+            
+            .cover-student-card {
+                background: linear-gradient(145deg, #ffffff 0%, #f0f7ff 100%);
+                border-radius: 20px;
+                padding: 0;
+                width: 100%;
+                max-width: 480px;
+                box-shadow: 
+                    0 15px 40px rgba(0, 59, 140, 0.15),
+                    0 5px 15px rgba(0, 59, 140, 0.08),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                border: none;
+                margin-bottom: 5px;
+                overflow: hidden;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .cover-student-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 18px 25px;
+                background: linear-gradient(135deg, #003B8C 0%, #0066CC 60%, #0099ff 100%);
+                border-bottom: none;
+                margin-bottom: 0;
+            }
+            
+            .cover-student-icon {
+                width: 44px;
+                height: 44px;
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+            }
+            
+            .cover-student-icon svg {
+                width: 24px;
+                height: 24px;
+            }
+            
+            .cover-student-title {
+                font-family: 'Poppins', sans-serif;
+                font-size: 1.1em;
+                font-weight: 700;
+                color: white;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            
+            .cover-student-details {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                padding: 20px 25px;
+            }
+            
+            .cover-detail-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 18px;
+                background: white;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                border: 2px solid #e8f0fe;
+                box-shadow: 0 3px 10px rgba(0, 59, 140, 0.06);
+                transition: all 0.2s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .cover-detail-row::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 5px;
+                background: linear-gradient(180deg, #0066CC, #2ECC71);
+            }
+            
+            .cover-detail-row:last-child {
+                margin-bottom: 0;
+            }
+            
+            .cover-detail-label {
+                font-family: 'Inter', sans-serif;
+                font-size: 0.8em;
+                font-weight: 800;
+                color: #0066CC;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                padding-left: 10px;
+            }
+            
+            .cover-detail-value {
+                font-family: 'Poppins', sans-serif;
+                font-size: 1.05em;
+                font-weight: 700;
+                color: #1e293b;
+                text-align: right;
+            }
+            
+            .cover-score-section {
+                text-align: center;
+                margin: 25px 0 15px 0;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .cover-score-label {
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.9em;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                margin-bottom: 15px;
+            }
+            
+            .cover-score-display {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+            
+            .cover-score-circle {
+                width: 140px;
+                height: 140px;
+                border-radius: 50%;
+                background: conic-gradient(from 0deg, #003B8C 0%, #0066CC 25%, #2ECC71 50%, #F1C40F 75%, #003B8C 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 
+                    0 15px 40px rgba(0, 59, 140, 0.3),
+                    0 5px 15px rgba(0, 59, 140, 0.2);
+                position: relative;
+                animation: rotateGlow 8s linear infinite;
+            }
+            
+            @keyframes rotateGlow {
+                0% { box-shadow: 0 15px 40px rgba(0, 59, 140, 0.3), 0 5px 15px rgba(0, 59, 140, 0.2); }
+                50% { box-shadow: 0 15px 50px rgba(46, 204, 113, 0.3), 0 5px 20px rgba(46, 204, 113, 0.2); }
+                100% { box-shadow: 0 15px 40px rgba(0, 59, 140, 0.3), 0 5px 15px rgba(0, 59, 140, 0.2); }
+            }
+            
+            .cover-score-circle::before {
+                content: '';
+                position: absolute;
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                background: linear-gradient(145deg, #ffffff, #f8fafc);
+                box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.08);
+            }
+            
+            .cover-score-number {
+                position: relative;
+                z-index: 2;
+                font-family: 'Montserrat', sans-serif;
+                font-size: 3em;
+                font-weight: 900;
+                background: linear-gradient(135deg, #003B8C, #0066CC);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            
+            .cover-score-percent {
+                position: relative;
+                z-index: 2;
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1em;
+                font-weight: 700;
+                color: #0066CC;
+                margin-left: 2px;
+                align-self: flex-start;
+                margin-top: 8px;
+                line-height: 1;
+            }
+            
+            .cover-readiness-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 30px;
+                border-radius: 30px;
+                font-family: 'Poppins', sans-serif;
+                font-weight: 700;
+                font-size: 1em;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .cover-readiness-badge::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                animation: badgeShine 3s infinite;
+            }
+            
+            @keyframes badgeShine {
+                0% { left: -100%; }
+                50%, 100% { left: 100%; }
+            }
+            
+            .cover-readiness-badge.excellent {
+                background: linear-gradient(135deg, #22c55e, #16a34a);
+                color: white;
+            }
+            
+            .cover-readiness-badge.good {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+            }
+            
+            .cover-readiness-badge.satisfactory {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: white;
+            }
+            
+            .cover-readiness-badge.needs-improvement {
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                color: white;
+            }
+            
+            .badge-icon {
+                font-size: 1.2em;
+            }
+            
+            .badge-text {
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            }
+            
+            /* D-Vivid Promotional Section */
+            .cover-promo-section {
+                max-width: 500px;
+                width: 100%;
+                margin-top: 18px;
+                padding: 20px 22px;
+                background: linear-gradient(145deg, #003B8C 0%, #0055b8 50%, #0066CC 100%);
+                border-radius: 18px;
+                box-shadow: 0 10px 35px rgba(0, 59, 140, 0.3);
+                position: relative;
+                z-index: 1;
+                color: white;
+            }
+            
+            .promo-header {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            }
+            
+            .promo-logo-wrapper {
+                width: 60px;
+                height: 60px;
+                background: white;
+                border-radius: 12px;
+                padding: 8px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            
+            .promo-logo {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            
+            .promo-title {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            
+            .promo-company {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.35em;
+                font-weight: 800;
+                color: white;
+                letter-spacing: 0.5px;
+                line-height: 1.2;
+            }
+            
+            .promo-tagline {
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.82em;
+                color: rgba(255, 255, 255, 0.85);
+                font-weight: 500;
+            }
+            
+            .promo-description {
+                font-family: 'Inter', sans-serif;
+                font-size: 0.82em;
+                color: rgba(255, 255, 255, 0.92);
+                line-height: 1.55;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            
+            .promo-contact-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+            
+            .promo-contact-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 14px;
+                background: rgba(255, 255, 255, 0.12);
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            
+            .promo-contact-icon {
+                font-size: 1.1em;
+                color: #F1C40F;
+            }
+            
+            .promo-text {
+                font-family: 'Inter', sans-serif;
+                font-size: 0.78em;
+                color: white;
+                font-weight: 600;
+            }
+            
+            .promo-social {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 12px;
+                padding: 10px 12px;
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+            }
+            
+            .promo-social-label {
+                font-family: 'Inter', sans-serif;
+                font-size: 0.75em;
+                color: rgba(255, 255, 255, 0.8);
+                font-weight: 600;
+            }
+            
+            .promo-social-links {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .social-icon-link {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+                background: white;
+                border-radius: 10px;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            .social-icon-link:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            }
+            
+            .social-icon-link svg {
+                display: block;
+            }
+            
+            .promo-website-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 14px 20px;
+                background: linear-gradient(135deg, #2ECC71, #27ae60);
+                border-radius: 12px;
+                box-shadow: 0 5px 15px rgba(46, 204, 113, 0.35);
+                text-decoration: none;
+                transition: all 0.2s ease;
+            }
+            
+            .promo-website-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(46, 204, 113, 0.45);
+            }
+            
+            .website-btn-icon {
+                font-size: 1.2em;
+            }
+            
+            .website-btn-text {
+                font-family: 'Poppins', sans-serif;
+                font-size: 0.95em;
+                color: white;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+            
             .student-info {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -2570,55 +3081,50 @@ read_file
                 width: 100%;
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-                margin-top: 25px;
-                padding: 15px;
+                gap: 15px;
+                margin-top: 30px;
+                padding: 20px;
                 background: linear-gradient(135deg, #f8fafb, #ffffff);
-                border-radius: 12px;
+                border-radius: 14px;
                 border: 2px solid #e9ecef;
             }
             
             .radar-legend-item {
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                padding: 10px 12px;
+                gap: 12px;
+                padding: 14px 16px;
                 background: white;
-                border-radius: 8px;
-                border-left: 4px solid transparent;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-                transition: transform 0.2s ease;
-            }
-            
-            .radar-legend-item:hover {
-                transform: translateX(3px);
+                border-radius: 10px;
+                border-left: 5px solid transparent;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
             }
             
             .radar-legend-icon {
-                font-size: 1.4em;
+                font-size: 1.8em;
                 line-height: 1;
             }
             
             .radar-legend-color {
-                width: 20px;
-                height: 20px;
-                border-radius: 4px;
+                width: 24px;
+                height: 24px;
+                border-radius: 6px;
                 flex-shrink: 0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+                box-shadow: 0 2px 6px rgba(0,0,0,0.18);
             }
             
             .radar-legend-label {
                 flex: 1;
-                font-size: 0.9em;
-                font-weight: 600;
+                font-size: 1.05em;
+                font-weight: 700;
                 color: #0066CC;
             }
             
             .radar-legend-score {
-                font-size: 1em;
-                font-weight: 800;
+                font-size: 1.2em;
+                font-weight: 900;
                 color: #0066CC;
-                min-width: 45px;
+                min-width: 50px;
                 text-align: right;
             }
             
@@ -3353,33 +3859,90 @@ read_file
                 </div>
             </div>
             
-            <div class="content">
-                <div class="student-info">
-                    <div class="info-item">
-                        <div class="info-label">Student Email</div>
-                        <div class="info-value">${studentEmail}</div>
+            <div class="content cover-page-content">
+                <!-- Student Information Card -->
+                <div class="cover-student-card">
+                    <div class="cover-student-header">
+                        <div class="cover-student-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="white"/>
+                                <path d="M12.0002 14.5C6.99016 14.5 2.91016 17.86 2.91016 22C2.91016 22.28 3.13016 22.5 3.41016 22.5H20.5902C20.8702 22.5 21.0902 22.28 21.0902 22C21.0902 17.86 17.0102 14.5 12.0002 14.5Z" fill="white"/>
+                            </svg>
+                        </div>
+                        <span class="cover-student-title">Student Profile</span>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Student Name</div>
-                        <div class="info-value">${studentName}</div>
+                    <div class="cover-student-details">
+                        <div class="cover-detail-row">
+                            <span class="cover-detail-label">Full Name</span>
+                            <span class="cover-detail-value">${studentName}</span>
+                        </div>
+                        <div class="cover-detail-row">
+                            <span class="cover-detail-label">Email Address</span>
+                            <span class="cover-detail-value">${studentEmail}</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="overall-score">
-                    ${generateCircularProgressChart(overallIndex, readinessLevel)}
+                <!-- Overall Readiness Score - Prominent Display -->
+                <div class="cover-score-section">
+                    <div class="cover-score-label">Overall Readiness Index</div>
+                    <div class="cover-score-display">
+                        <div class="cover-score-circle">
+                            <span class="cover-score-number">${overallIndex}</span>
+                            <span class="cover-score-percent">%</span>
+                        </div>
+                    </div>
+                    <div class="cover-readiness-badge ${readinessLevel.toLowerCase().replace(/\s+/g, '-')}">
+                        <span class="badge-icon">${readinessLevel === 'Excellent' ? '⭐' : readinessLevel === 'Good' ? '✓' : readinessLevel === 'Satisfactory' ? '◉' : '▲'}</span>
+                        <span class="badge-text">${readinessLevel} Readiness</span>
+                    </div>
                 </div>
                 
-                <!-- READINESS SCORES -->
-                <div style="margin: 20px 0;">
-                    <h3 style="text-align: center; color: #0066CC; margin: 0 0 15px 0; font-size: 1.3em; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px;">Readiness Scores</h3>
-                    <div class="scores-grid">
-                        ${generateScoreCard('Financial Planning', scores['Financial Planning'], getFrameworkWeight('Financial Planning'))}
-                        ${generateScoreCard('Academic Readiness', scores['Academic Readiness'], getFrameworkWeight('Academic Readiness'))}
-                        ${generateScoreCard('Career Alignment', scores['Career Alignment'], getFrameworkWeight('Career Alignment'))}
-                        ${generateScoreCard('Personal & Cultural', scores['Personal & Cultural'], getFrameworkWeight('Personal & Cultural'))}
-                        ${generateScoreCard('Practical Readiness', scores['Practical Readiness'], getFrameworkWeight('Practical Readiness'))}
-                        ${generateScoreCard('Support System', scores['Support System'], getFrameworkWeight('Support System'))}
+                <!-- D-Vivid Promotional Section -->
+                <div class="cover-promo-section">
+                    <div class="promo-header">
+                        <div class="promo-logo-wrapper">
+                            <img src="${logoDataURI}" alt="D-Vivid Logo" class="promo-logo"/>
+                        </div>
+                        <div class="promo-title">
+                            <span class="promo-company">D-Vivid Consultant</span>
+                            <span class="promo-tagline">Your Gateway to Global Education</span>
+                        </div>
                     </div>
+                    <div class="promo-description">
+                        Expert guidance for your study abroad journey. We help students achieve their dreams of international education with personalized counseling and support.
+                    </div>
+                    <div class="promo-contact-grid">
+                        <div class="promo-contact-item">
+                            <span class="promo-contact-icon">✉</span>
+                            <span class="promo-text">info@dvividconsultant.com</span>
+                        </div>
+                        <div class="promo-contact-item">
+                            <span class="promo-contact-icon">☎</span>
+                            <span class="promo-text">+91 7575020920</span>
+                        </div>
+                    </div>
+                    <div class="promo-social">
+                        <span class="promo-social-label">Follow Us:</span>
+                        <div class="promo-social-links">
+                            <a href="https://www.linkedin.com/company/dvividconsultant/" target="_blank" class="social-icon-link" title="LinkedIn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                            </a>
+                            <a href="https://www.instagram.com/dvividconsultant/" target="_blank" class="social-icon-link" title="Instagram">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                            </a>
+                            <a href="https://www.facebook.com/dvividconsultant" target="_blank" class="social-icon-link" title="Facebook">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            </a>
+                            <a href="https://www.youtube.com/@abroadgnangurudvivid" target="_blank" class="social-icon-link" title="YouTube">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <a href="https://www.dvividconsultant.com" target="_blank" class="promo-website-btn">
+                        <span class="website-btn-icon">🌐</span>
+                        <span class="website-btn-text">Visit Website</span>
+                    </a>
                 </div>
 
             </div>
