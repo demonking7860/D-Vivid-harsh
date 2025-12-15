@@ -1014,31 +1014,58 @@ export default function StudyAbroadSurvey() {
           });
 
           if (response.ok) {
-            setPdfStatus('Finalizing download...');
-            console.log('✅ PDF generated successfully');
-            const blob = await response.blob();
-            console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
+            const contentType = response.headers.get('content-type');
             
-            // Direct download without any size checks
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            
-            // Clean up after a delay
-            setTimeout(() => {
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
-            }, 1000);
-            
-            setPdfStatus('✅ Report downloaded successfully!');
-            console.log('✅ PDF download initiated');
-            
-            // Clear status message after 3 seconds
-            setTimeout(() => setPdfStatus(''), 3000);
+            // Check if response is JSON (S3 URL) or blob
+            if (contentType?.includes('application/json')) {
+              // New: S3 URL returned (faster, avoids timeout)
+              const data = await response.json();
+              if (data.s3Url) {
+                setPdfStatus('✅ Downloading PDF from cloud storage...');
+                console.log('✅ PDF available at S3 URL:', data.s3Url);
+                // Trigger direct download from S3
+                const a = document.createElement('a');
+                a.href = data.s3Url;
+                a.download = `study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
+                a.target = '_blank'; // Open in new tab as fallback
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setPdfStatus('✅ Report downloaded successfully!');
+                console.log('✅ PDF download initiated from S3');
+                setTimeout(() => setPdfStatus(''), 3000);
+              } else {
+                throw new Error('S3 URL not found in response');
+              }
+            } else {
+              // Fallback: blob returned (old behavior)
+              setPdfStatus('Finalizing download...');
+              console.log('✅ PDF generated successfully');
+              const blob = await response.blob();
+              console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
+              
+              // Direct download without any size checks
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
+              a.style.display = 'none';
+              document.body.appendChild(a);
+              a.click();
+              
+              // Clean up after a delay
+              setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              }, 1000);
+              
+              setPdfStatus('✅ Report downloaded successfully!');
+              console.log('✅ PDF download initiated');
+              
+              // Clear status message after 3 seconds
+              setTimeout(() => setPdfStatus(''), 3000);
+            }
           } else {
             const errorText = await response.text();
             console.error('❌ PDF generation failed:', response.status, errorText);

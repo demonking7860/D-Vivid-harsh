@@ -202,96 +202,122 @@ export async function POST(request: NextRequest) {
     console.log(`  - Bucket: ${s3Bucket || 'UNDEFINED'}`);
     console.log(`  - Region: ${awsRegion}`);
     
-if (s3Bucket) {
-  try {
-    console.log("📤 Attempting S3 upload...");
+    // Variable to store S3 URL if upload succeeds
+    let s3Url: string | null = null;
+    
+    if (s3Bucket) {
+      try {
+        console.log("📤 Attempting S3 upload...");
 
-    // IAM-based S3 client (Amplify SSR injects temporary credentials)
-    const AWS = await import("aws-sdk");
-    const s3 = new AWS.S3({
-      region: awsRegion,
-    });
+        // IAM-based S3 client (Amplify SSR injects temporary credentials)
+        const AWS = await import("aws-sdk");
+        const s3 = new AWS.S3({
+          region: awsRegion,
+        });
 
-    const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
+        const key = `reports/${studentNameForKey}-${Date.now()}.pdf`;
 
-    console.log("📦 Upload details:");
-    console.log("  - Bucket:", s3Bucket);
-    console.log("  - Key:", key);
-    console.log("  - PDF Size:", pdfBuffer.length, "bytes");
+        console.log("📦 Upload details:");
+        console.log("  - Bucket:", s3Bucket);
+        console.log("  - Key:", key);
+        console.log("  - PDF Size:", pdfBuffer.length, "bytes");
 
-    // Upload the PDF
-    await s3
-      .putObject({
-        Bucket: s3Bucket,
-        Key: key,
-        Body: pdfBuffer,
-        ContentType: "application/pdf",
-      })
-      .promise();
+        // Upload the PDF with Content-Disposition header to force download
+        const fileName = `psychometric-report-${studentNameForKey}.pdf`;
+        await s3
+          .putObject({
+            Bucket: s3Bucket,
+            Key: key,
+            Body: pdfBuffer,
+            ContentType: "application/pdf",
+            ContentDisposition: `attachment; filename="${fileName}"`,
+          })
+          .promise();
 
-    const s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
-    console.log("✅ Successfully uploaded PDF to S3:", s3Url);
+        s3Url = `https://${s3Bucket}.s3.${awsRegion}.amazonaws.com/${key}`;
+        console.log("✅ Successfully uploaded PDF to S3:", s3Url);
 
-    // Extract user data from request body - check for userInfo object first, then fallback to analysisResults
-    const userInfo = results.userInfo || {};
-    const studentName =
-      userInfo.name ||
-      results["Student Name"] ||
-      results.studentName ||
-      "";
-    const studentEmail =
-      userInfo.email ||
-      results["Student Email"] ||
-      results.studentEmail ||
-      results.userEmail ||
-      "";
-    const studentPhone =
-      userInfo.mobile ||
-      userInfo.phone ||
-      results["Student Phone"] ||
-      results.studentPhone ||
-      results.userPhone ||
-      "";
-    const surveyType =
-      results.surveyType ||
-      (results.testType && results.testType.includes('UltraQuick') ? 'UltraQuick' :
-       results.testType && results.testType.includes('Concise') ? 'Concise' :
-       results.testType && results.testType.includes('Expanded') ? 'Expanded' :
-       results.testType && results.testType.includes('Study Abroad') ? 'StudyAbroad' :
-       'Unknown');
+        // Extract user data from request body - check for userInfo object first, then fallback to analysisResults
+        const userInfo = results.userInfo || {};
+        const studentName =
+          userInfo.name ||
+          results["Student Name"] ||
+          results.studentName ||
+          "";
+        const studentEmail =
+          userInfo.email ||
+          results["Student Email"] ||
+          results.studentEmail ||
+          results.userEmail ||
+          "";
+        const studentPhone =
+          userInfo.mobile ||
+          userInfo.phone ||
+          results["Student Phone"] ||
+          results.studentPhone ||
+          results.userPhone ||
+          "";
+        const surveyType =
+          results.surveyType ||
+          (results.testType && results.testType.includes('UltraQuick') ? 'UltraQuick' :
+           results.testType && results.testType.includes('Concise') ? 'Concise' :
+           results.testType && results.testType.includes('Expanded') ? 'Expanded' :
+           results.testType && results.testType.includes('Study Abroad') ? 'StudyAbroad' :
+           'Unknown');
 
-    if (studentEmail && studentPhone) {
-      // Store in Google Sheets
-      await storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url);
-      
-      // Send all data to LeadSquared CRM (creates new lead or updates existing)
-      await sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url);
+        // Run Google Sheets and LeadSquared updates asynchronously (non-blocking)
+        // This allows response to return immediately after S3 upload, avoiding timeout
+        if (studentEmail && studentPhone) {
+          // Fire-and-forget: Don't await - let these run in background
+          Promise.all([
+            storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url).catch(err => {
+              console.error('❌ Google Sheets update failed (non-blocking):', err);
+            }),
+            sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url).catch(err => {
+              console.error('❌ LeadSquared update failed (non-blocking):', err);
+            })
+          ]).then(() => {
+            console.log("✅ Background: Sheets storage and LeadSquared sync completed");
+          }).catch(err => {
+            console.error("❌ Background: Some updates failed:", err);
+          });
+          
+          console.log("✅ S3 upload completed, returning response immediately");
+          console.log("⏳ Google Sheets and LeadSquared updates running in background...");
+        } else {
+          console.warn("⚠️ Email or phone missing - skipping Sheets storage and LeadSquared sync");
+        }
+      } catch (uploadErr) {
+        console.error("❌ Failed to upload PDF to S3:");
+        console.error("  Error Name:", (uploadErr as any).name);
+        console.error("  Error Message:", (uploadErr as any).message);
+        console.error(
+          "  Full Error Object:",
+          JSON.stringify(uploadErr, null, 2)
+        );
+        console.log("⚠️ S3 upload failed, will return PDF blob as fallback");
+        s3Url = null; // Ensure s3Url is null on failure
+      }
     } else {
-      console.warn("⚠️ Email or phone missing - skipping Sheets storage and LeadSquared sync");
+      console.log("⚠️ S3 upload skipped - missing S3_BUCKET");
+      console.log(`  - Bucket: ${s3Bucket}`);
     }
 
-    console.log("✅ S3 upload, Sheets storage, and LeadSquared sync completed");
-  } catch (uploadErr) {
-    console.error("❌ Failed to upload PDF to S3:");
-    console.error("  Error Name:", (uploadErr as any).name);
-    console.error("  Error Message:", (uploadErr as any).message);
-    console.error(
-      "  Full Error Object:",
-      JSON.stringify(uploadErr, null, 2)
-    );
-    console.log("⚠️ Continuing to return PDF blob despite S3 upload failure");
-    // Continue to return PDF response even if S3 upload fails
-  }
-} else {
-  console.log("⚠️ S3 upload skipped - missing S3_BUCKET");
-  console.log(`  - Bucket: ${s3Bucket}`);
-}
+    // Close browser before returning response
+    await browser.close();
 
-    await browser.close()
+    // If S3 upload succeeded, return S3 URL immediately (much faster, avoids timeout)
+    if (s3Url) {
+      console.log('📄 Returning S3 URL instead of blob to avoid timeout:', s3Url);
+      return NextResponse.json({ 
+        success: true, 
+        s3Url: s3Url,
+        message: 'PDF generated and uploaded successfully'
+      }, { status: 200 });
+    }
 
-    console.log('📄 Returning PDF response with size:', pdfBuffer.length)
-
-    // Return PDF as response - use Response constructor for binary data
+    // Fallback: return PDF blob if S3 upload failed or S3_BUCKET not configured
+    console.log('📄 Returning PDF blob (S3 upload failed or not configured)');
     return new Response(pdfBuffer as any, {
       status: 200,
       headers: {
@@ -573,11 +599,13 @@ function generateHTMLContent(results: any): string {
             transform="rotate(-90 ${center} ${center})"
             style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));"
           />
-          <!-- Center text -->
-          <text x="${center}" y="${center - 8}" text-anchor="middle" dominant-baseline="middle" 
-                font-size="28" font-weight="900" fill="${color}" font-family="Poppins, sans-serif">${score}%</text>
-          <text x="${center}" y="${center + 18}" text-anchor="middle" dominant-baseline="middle" 
-                font-size="11" font-weight="700" fill="#ffffff" font-family="Poppins, sans-serif" letter-spacing="1px">CRI</text>
+          <!-- Center text - number and percentage aligned on same baseline -->
+          <text x="${center}" y="${center - 5}" text-anchor="middle" dominant-baseline="central" 
+                font-size="36" font-weight="900" fill="${color}" font-family="Poppins, sans-serif">${score}</text>
+          <text x="${center + 22}" y="${center - 12}" text-anchor="start" dominant-baseline="middle" 
+                font-size="18" font-weight="700" fill="${color}" font-family="Poppins, sans-serif">%</text>
+          <text x="${center}" y="${center + 20}" text-anchor="middle" dominant-baseline="middle" 
+                font-size="10" font-weight="600" fill="#6b7280" font-family="Poppins, sans-serif" letter-spacing="1px">CRI</text>
         </svg>
         <div class="readiness-level-badge">
           <span class="readiness-level-text">${readinessLevel}</span>
@@ -2134,19 +2162,21 @@ function generateHTMLContent(results: any): string {
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
+                line-height: 1;
+                display: inline-block;
             }
             
             .cover-score-percent {
                 position: relative;
                 z-index: 2;
                 font-family: 'Montserrat', sans-serif;
-                font-size: 1em;
+                font-size: 0.6em;
                 font-weight: 700;
                 color: #0066CC;
                 margin-left: 2px;
-                align-self: flex-start;
-                margin-top: 8px;
+                vertical-align: top;
                 line-height: 1;
+                display: inline-block;
             }
             
             .cover-readiness-badge {
@@ -3887,8 +3917,10 @@ read_file
                     <div class="cover-score-label">Overall Readiness Index</div>
                     <div class="cover-score-display">
                         <div class="cover-score-circle">
-                            <span class="cover-score-number">${overallIndex}</span>
-                            <span class="cover-score-percent">%</span>
+                            <div style="position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; line-height: 1;">
+                                <span class="cover-score-number">${overallIndex}</span>
+                                <span class="cover-score-percent">%</span>
+                            </div>
                         </div>
                     </div>
                     <div class="cover-readiness-badge ${readinessLevel.toLowerCase().replace(/\s+/g, '-')}">
