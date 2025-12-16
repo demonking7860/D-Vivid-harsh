@@ -7,7 +7,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "../ui/progress";
-import { CheckCircle, Download, Loader2 } from "lucide-react";
+import { CheckCircle, Eye, Loader2 } from "lucide-react";
 
 interface Question {
   id: string;
@@ -706,19 +706,18 @@ export default function ConciseSurvey() {
               // New: S3 URL returned (faster, avoids timeout)
               const data = await response.json();
               if (data.s3Url) {
-                setPdfStatus('✅ Downloading PDF from cloud storage...');
+                setPdfStatus('✅ Opening PDF in new tab...');
                 console.log('✅ PDF available at S3 URL:', data.s3Url);
-                // Trigger direct download from S3
+                // Open PDF in new tab instead of downloading
                 const a = document.createElement('a');
                 a.href = data.s3Url;
-                a.download = `concise-study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
-                a.target = '_blank'; // Open in new tab as fallback
+                a.target = '_blank'; // Open in new tab
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                setPdfStatus('✅ Report downloaded successfully!');
-                console.log('✅ PDF download initiated from S3');
+                setPdfStatus('✅ Report opened in new tab!');
+                console.log('✅ PDF opened in new tab from S3');
                 setTimeout(() => setPdfStatus(''), 3000);
               } else {
                 throw new Error('S3 URL not found in response');
@@ -814,8 +813,8 @@ export default function ConciseSurvey() {
                     </>
                   ) : (
                     <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Detailed Report
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Detailed Report
                     </>
                   )}
                 </Button>
