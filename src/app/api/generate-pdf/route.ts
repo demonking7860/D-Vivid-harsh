@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         console.log("  - Key:", key);
         console.log("  - PDF Size:", pdfBuffer.length, "bytes");
 
-        // Upload the PDF with Content-Disposition header to force download
+        // Upload the PDF with Content-Disposition header for inline viewing
         const fileName = `psychometric-report-${studentNameForKey}.pdf`;
         await s3
           .putObject({
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
             Key: key,
             Body: pdfBuffer,
             ContentType: "application/pdf",
-            ContentDisposition: `attachment; filename="${fileName}"`,
+            ContentDisposition: `inline; filename="${fileName}"`,
           })
           .promise();
 
