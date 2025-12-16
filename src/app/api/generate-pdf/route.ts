@@ -1,90 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { google } from 'googleapis'
 import { sendToLeadSquared } from '@/lib/leadsquared'
 
-// Google Sheets configuration
-const SHEET_ID = "16hCDBmJZSgpTILoKWNFXqAU6BAHSG-5JirFIOKfYU1U"
-const RANGE = 'Sheet1!A:H' // Columns: Email, Phone, Name, Survey Type, Timestamp, Lead Generated, Contacted, S3 URL/Notes
-
-// Parse service account credentials from environment variable
-const getServiceAccountAuth = () => {
-  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-
-  if (!serviceAccountKey) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
-  }
-
-  try {
-    const credentials = JSON.parse(serviceAccountKey);
-
-    if (!credentials.private_key?.includes('BEGIN PRIVATE KEY')) {
-      throw new Error('Invalid or truncated private key');
-    }
-
-    return new google.auth.GoogleAuth({
-      credentials: {
-        type: credentials.type,
-        project_id: credentials.project_id,
-        private_key_id: credentials.private_key_id,
-        private_key: credentials.private_key,
-        client_email: credentials.client_email,
-        client_id: credentials.client_id,
-      },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-  } catch (error) {
-    console.error('Failed to parse Google Service Account key:', error);
-    throw new Error(`Failed to parse service account key: ${error}`);
-  }
-};
-
-// Initialize Sheets API client
-const getSheetsClient = async () => {
-  const auth = getServiceAccountAuth();
-  const sheets = google.sheets({ version: 'v4', auth });
-  return sheets;
-};
-
-// Function to store all user data and PDF URL in Google Sheets together
-const storeS3UrlInSheets = async (
-  name: string,
-  email: string,
-  phone: string,
-  surveyType: string,
-  s3Url: string
-) => {
-  try {
-    console.log('📊 Attempting to store all user data and S3 URL in Google Sheets...');
-    const sheets = await getSheetsClient();
-
-    // Write all data together in one operation
-    const timestamp = new Date().toISOString();
-    const newRow = [
-      email,
-      phone,
-      name || '',
-      surveyType || 'Unknown',
-      timestamp,
-      '', // Lead Generated
-      '', // Contacted
-      s3Url // S3 URL
-    ];
-
-    console.log('📝 Creating new row with all data:', { email, phone, name, surveyType, s3Url });
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SHEET_ID,
-      range: RANGE,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [newRow] },
-    });
-    console.log('✅ Successfully stored all data in Google Sheets');
-  } catch (error) {
-    console.error('❌ Failed to store data in Google Sheets:', error);
-    // Don't throw - let PDF upload succeed even if Sheets storage fails
-  }
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -265,27 +183,22 @@ export async function POST(request: NextRequest) {
            results.testType && results.testType.includes('Study Abroad') ? 'StudyAbroad' :
            'Unknown');
 
-        // Run Google Sheets and LeadSquared updates asynchronously (non-blocking)
+        // Run LeadSquared update asynchronously (non-blocking)
         // This allows response to return immediately after S3 upload, avoiding timeout
         if (studentEmail && studentPhone) {
-          // Fire-and-forget: Don't await - let these run in background
-          Promise.all([
-            storeS3UrlInSheets(studentName, studentEmail, studentPhone, surveyType, s3Url).catch(err => {
-              console.error('❌ Google Sheets update failed (non-blocking):', err);
-            }),
-            sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url).catch(err => {
-              console.error('❌ LeadSquared update failed (non-blocking):', err);
+          // Fire-and-forget: Don't await - let LeadSquared sync run in background
+          sendToLeadSquared(studentName, studentEmail, studentPhone, surveyType, s3Url)
+            .then(() => {
+              console.log("✅ Background: LeadSquared sync completed");
             })
-          ]).then(() => {
-            console.log("✅ Background: Sheets storage and LeadSquared sync completed");
-          }).catch(err => {
-            console.error("❌ Background: Some updates failed:", err);
-          });
+            .catch(err => {
+              console.error('❌ LeadSquared update failed (non-blocking):', err);
+            });
           
           console.log("✅ S3 upload completed, returning response immediately");
-          console.log("⏳ Google Sheets and LeadSquared updates running in background...");
+          console.log("⏳ LeadSquared sync running in background...");
         } else {
-          console.warn("⚠️ Email or phone missing - skipping Sheets storage and LeadSquared sync");
+          console.warn("⚠️ Email or phone missing - skipping LeadSquared sync");
         }
       } catch (uploadErr) {
         console.error("❌ Failed to upload PDF to S3:");
