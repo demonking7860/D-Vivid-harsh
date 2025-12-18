@@ -120,11 +120,17 @@ const Hero = () => {
         }
     };
 
+    const handleOpenConsultation = () => {
+        // Push state to history when opening consultation
+        window.history.pushState({ consultation: true }, '', window.location.pathname);
+        setOpenConsultation(true);
+    };
+
     return (
         <div className="flex flex-col items-center text-center w-full max-w-5xl my-24 mx-auto z-40 relative">
             <Container delay={0.0}>
                 <div 
-                    onClick={() => setOpenConsultation(true)}
+                    onClick={handleOpenConsultation}
                     className="pl-2 pr-1 py-1 rounded-full border border-foreground/10 hover:border-foreground/15 hover:bg-foreground/5 backdrop-blur-lg cursor-pointer flex items-center gap-2.5 select-none max-w-full mx-auto sm:w-max transition-all duration-300 flex-wrap sm:flex-nowrap justify-center sm:justify-start"
                 >
                     <div className="w-3.5 h-3.5 rounded-full bg-primary/40 flex items-center justify-center relative flex-shrink-0">
