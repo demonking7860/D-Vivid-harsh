@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
         const fileName = `psychometric-report-${studentNameForKey}.pdf`;
         const encodedFileName = encodeURIComponent(fileName);
         
+        // Note: ACL removed because bucket has ACLs disabled (use bucket policy for public access)
         await s3
           .putObject({
             Bucket: s3Bucket,
@@ -151,7 +152,6 @@ export async function POST(request: NextRequest) {
             Body: pdfBuffer,
             ContentType: "application/pdf",
             ContentDisposition: `inline; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`,
-            ACL: 'public-read', // Ensure public read access for inline viewing
             CacheControl: 'public, max-age=3600'
           })
           .promise();
