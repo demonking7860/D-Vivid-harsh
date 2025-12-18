@@ -1034,8 +1034,7 @@ export default function ExpandedSurvey() {
                 {pdfUrl ? (
                   <Button 
                     onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
-                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-lg px-8 py-6 text-white font-semibold"
-                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
                   >
                     See Result
                   </Button>

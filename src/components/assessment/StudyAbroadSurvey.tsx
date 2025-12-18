@@ -1163,8 +1163,7 @@ export default function StudyAbroadSurvey() {
                 {pdfUrl ? (
                   <Button 
                     onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-lg px-8 py-6 text-white font-semibold"
-                    size="lg"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                   >
                     See Result
                   </Button>
