@@ -66,11 +66,23 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                 <li
                                     onClick={() => {
                                         const element = document.getElementById('psychometric-test');
-                                        element?.scrollIntoView({ behavior: 'smooth' });
+                                        if (element) {
+                                            const yOffset = -100;
+                                            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                            window.scrollTo({ top: y, behavior: 'smooth' });
+                                        }
                                         setIsOpen(false);
                                         setTimeout(() => {
                                             const event = new CustomEvent('openTest', { detail: { testType: 'assessment' } });
                                             window.dispatchEvent(event);
+                                            setTimeout(() => {
+                                                const formElement = document.querySelector('[data-test-form]');
+                                                if (formElement) {
+                                                    const yOffset = -120;
+                                                    const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                                    window.scrollTo({ top: y, behavior: 'smooth' });
+                                                }
+                                            }, 500);
                                         }, 800);
                                     }}
                                     className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
@@ -83,11 +95,23 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                 <li
                                     onClick={() => {
                                         const element = document.getElementById('psychometric-test');
-                                        element?.scrollIntoView({ behavior: 'smooth' });
+                                        if (element) {
+                                            const yOffset = -100;
+                                            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                            window.scrollTo({ top: y, behavior: 'smooth' });
+                                        }
                                         setIsOpen(false);
                                         setTimeout(() => {
                                             const event = new CustomEvent('openTest', { detail: { testType: 'expanded' } });
                                             window.dispatchEvent(event);
+                                            setTimeout(() => {
+                                                const formElement = document.querySelector('[data-test-form]');
+                                                if (formElement) {
+                                                    const yOffset = -120;
+                                                    const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                                    window.scrollTo({ top: y, behavior: 'smooth' });
+                                                }
+                                            }, 500);
                                         }, 800);
                                     }}
                                     className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
@@ -100,11 +124,23 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                 <li
                                     onClick={() => {
                                         const element = document.getElementById('psychometric-test');
-                                        element?.scrollIntoView({ behavior: 'smooth' });
+                                        if (element) {
+                                            const yOffset = -100;
+                                            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                            window.scrollTo({ top: y, behavior: 'smooth' });
+                                        }
                                         setIsOpen(false);
                                         setTimeout(() => {
                                             const event = new CustomEvent('openTest', { detail: { testType: 'concise' } });
                                             window.dispatchEvent(event);
+                                            setTimeout(() => {
+                                                const formElement = document.querySelector('[data-test-form]');
+                                                if (formElement) {
+                                                    const yOffset = -120;
+                                                    const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                                    window.scrollTo({ top: y, behavior: 'smooth' });
+                                                }
+                                            }, 500);
                                         }, 800);
                                     }}
                                     className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
@@ -117,11 +153,23 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                 <li
                                     onClick={() => {
                                         const element = document.getElementById('psychometric-test');
-                                        element?.scrollIntoView({ behavior: 'smooth' });
+                                        if (element) {
+                                            const yOffset = -100;
+                                            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                            window.scrollTo({ top: y, behavior: 'smooth' });
+                                        }
                                         setIsOpen(false);
                                         setTimeout(() => {
                                             const event = new CustomEvent('openTest', { detail: { testType: 'ultraquick' } });
                                             window.dispatchEvent(event);
+                                            setTimeout(() => {
+                                                const formElement = document.querySelector('[data-test-form]');
+                                                if (formElement) {
+                                                    const yOffset = -120;
+                                                    const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                                                    window.scrollTo({ top: y, behavior: 'smooth' });
+                                                }
+                                            }, 500);
                                         }, 800);
                                     }}
                                     className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"

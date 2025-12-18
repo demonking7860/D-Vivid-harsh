@@ -117,12 +117,27 @@ const TestItem = ({ title, testType, children, icon }: { title: string; testType
     const handleTestClick = () => {
         // First scroll to the section
         const element = document.getElementById('psychometric-test');
-        element?.scrollIntoView({ behavior: 'smooth' });
+        if (element) {
+            // Account for header on mobile
+            const yOffset = window.innerWidth < 640 ? -100 : -80;
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
         
         // Then trigger the appropriate test after a short delay
         setTimeout(() => {
             const event = new CustomEvent('openTest', { detail: { testType } });
             window.dispatchEvent(event);
+            
+            // After test opens, scroll to form section
+            setTimeout(() => {
+                const formElement = document.querySelector('[data-test-form]');
+                if (formElement) {
+                    const yOffset = window.innerWidth < 640 ? -120 : -100;
+                    const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+            }, 500);
         }, 800);
     };
 

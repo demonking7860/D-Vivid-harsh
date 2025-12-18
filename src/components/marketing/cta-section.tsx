@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Brain, Globe, GraduationCap } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import StudyAbroadSurvey from "../assessment/StudyAbroadSurvey";
 import ConciseSurvey from "../assessment/ConciseSurvey";
 import ExpandedSurvey from "../assessment/ExpandedSurvey";
@@ -30,32 +30,109 @@ const CTASection = ({
   const [showExpandedSurvey, setShowExpandedSurvey] = useState(false);
   const [showUltraQuickSurvey, setShowUltraQuickSurvey] = useState(false);
 
+  // Initialize history state on mount
+  useEffect(() => {
+    // Push initial state to history so back button works correctly
+    if (window.history.state === null) {
+      window.history.replaceState({ test: null }, '', window.location.pathname);
+    }
+  }, []);
+
+  // Helper function to open a test with history management
+  const openTest = useCallback((testType: string) => {
+    // Push state to history
+    window.history.pushState({ test: testType }, '', window.location.pathname);
+    
+    // Reset all tests first
+    setShowAssessment(false);
+    setShowConciseSurvey(false);
+    setShowExpandedSurvey(false);
+    setShowUltraQuickSurvey(false);
+    
+    // Open the specific test
+    switch(testType) {
+      case 'assessment':
+        setShowAssessment(true);
+        break;
+      case 'expanded':
+        setShowExpandedSurvey(true);
+        break;
+      case 'concise':
+        setShowConciseSurvey(true);
+        break;
+      case 'ultraquick':
+        setShowUltraQuickSurvey(true);
+        break;
+    }
+    
+    // Scroll to form after test opens
+    setTimeout(() => {
+      const formElement = document.querySelector('[data-test-form]');
+      if (formElement) {
+        const yOffset = window.innerWidth < 640 ? -120 : -100;
+        const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 300);
+  }, []);
+
+  // Helper function to close all tests with history management
+  const closeAllTests = useCallback(() => {
+    // Push state to history (back to main view)
+    window.history.pushState({ test: null }, '', window.location.pathname);
+    
+    setShowAssessment(false);
+    setShowConciseSurvey(false);
+    setShowExpandedSurvey(false);
+    setShowUltraQuickSurvey(false);
+  }, []);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state?.test) {
+        // Restore test state
+        const testType = event.state.test;
+        setShowAssessment(false);
+        setShowConciseSurvey(false);
+        setShowExpandedSurvey(false);
+        setShowUltraQuickSurvey(false);
+        
+        switch(testType) {
+          case 'assessment':
+            setShowAssessment(true);
+            break;
+          case 'expanded':
+            setShowExpandedSurvey(true);
+            break;
+          case 'concise':
+            setShowConciseSurvey(true);
+            break;
+          case 'ultraquick':
+            setShowUltraQuickSurvey(true);
+            break;
+        }
+      } else {
+        // Close all tests
+        setShowAssessment(false);
+        setShowConciseSurvey(false);
+        setShowExpandedSurvey(false);
+        setShowUltraQuickSurvey(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Listen for custom events from navigation menu
   useEffect(() => {
     const handleOpenTest = (event: CustomEvent) => {
       const { testType } = event.detail;
-      
-      // Reset all tests first
-      setShowAssessment(false);
-      setShowConciseSurvey(false);
-      setShowExpandedSurvey(false);
-      setShowUltraQuickSurvey(false);
-      
-      // Open the specific test
-      switch(testType) {
-        case 'assessment':
-          setShowAssessment(true);
-          break;
-        case 'expanded':
-          setShowExpandedSurvey(true);
-          break;
-        case 'concise':
-          setShowConciseSurvey(true);
-          break;
-        case 'ultraquick':
-          setShowUltraQuickSurvey(true);
-          break;
-      }
+      openTest(testType);
     };
 
     window.addEventListener('openTest', handleOpenTest as EventListener);
@@ -63,7 +140,7 @@ const CTASection = ({
     return () => {
       window.removeEventListener('openTest', handleOpenTest as EventListener);
     };
-  }, []);
+  }, [openTest]);
 
   return (
     <div id="services">
@@ -92,40 +169,40 @@ const CTASection = ({
                 description="54-question test to evaluate overall study abroad readiness. (20–25 mins)"
                 icon={<BookOpen className="w-8 h-8 text-purple-400" />}
                 testType="assessment"
-                onAssessmentClick={setShowAssessment}
-                onConciseClick={setShowConciseSurvey}
-                onExpandedClick={setShowExpandedSurvey}
-                onUltraQuickClick={setShowUltraQuickSurvey}
+                onAssessmentClick={() => openTest('assessment')}
+                onConciseClick={() => openTest('concise')}
+                onExpandedClick={() => openTest('expanded')}
+                onUltraQuickClick={() => openTest('ultraquick')}
               />
               <TestCard 
                 title="Expanded Assessment"
                 description="42 questions covering academic, emotional, and financial aspects. (15–20 mins)"
                 icon={<Brain className="w-8 h-8 text-purple-400" />}
                 testType="expanded"
-                onAssessmentClick={setShowAssessment}
-                onConciseClick={setShowConciseSurvey}
-                onExpandedClick={setShowExpandedSurvey}
-                onUltraQuickClick={setShowUltraQuickSurvey}
+                onAssessmentClick={() => openTest('assessment')}
+                onConciseClick={() => openTest('concise')}
+                onExpandedClick={() => openTest('expanded')}
+                onUltraQuickClick={() => openTest('ultraquick')}
               />
               <TestCard 
                 title="Focused Assessment"
                 description="25 questions to measure readiness across key areas. (10–12 mins)"
                 icon={<Globe className="w-8 h-8 text-purple-400" />}
                 testType="concise"
-                onAssessmentClick={setShowAssessment}
-                onConciseClick={setShowConciseSurvey}
-                onExpandedClick={setShowExpandedSurvey}
-                onUltraQuickClick={setShowUltraQuickSurvey}
+                onAssessmentClick={() => openTest('assessment')}
+                onConciseClick={() => openTest('concise')}
+                onExpandedClick={() => openTest('expanded')}
+                onUltraQuickClick={() => openTest('ultraquick')}
               />
               <TestCard 
                 title="Quick Check"
                 description="12 quick questions for an instant readiness snapshot. (3–5 mins)"
                 icon={<GraduationCap className="w-8 h-8 text-purple-400" />}
                 testType="ultraquick"
-                onAssessmentClick={setShowAssessment}
-                onConciseClick={setShowConciseSurvey}
-                onExpandedClick={setShowExpandedSurvey}
-                onUltraQuickClick={setShowUltraQuickSurvey}
+                onAssessmentClick={() => openTest('assessment')}
+                onConciseClick={() => openTest('concise')}
+                onExpandedClick={() => openTest('expanded')}
+                onUltraQuickClick={() => openTest('ultraquick')}
               />
             </div>
             
@@ -136,7 +213,7 @@ const CTASection = ({
             <StudyAbroadSurvey />
             <div className="mt-8 text-center">
               <Button 
-                onClick={() => setShowAssessment(false)}
+                onClick={closeAllTests}
                 variant="outline"
                 className="mt-4"
               >
@@ -149,7 +226,7 @@ const CTASection = ({
             <ConciseSurvey />
             <div className="mt-8 text-center">
               <Button 
-                onClick={() => setShowConciseSurvey(false)}
+                onClick={closeAllTests}
                 variant="outline"
                 className="mt-4"
               >
@@ -162,7 +239,7 @@ const CTASection = ({
             <ExpandedSurvey />
             <div className="mt-8 text-center">
               <Button 
-                onClick={() => setShowExpandedSurvey(false)}
+                onClick={closeAllTests}
                 variant="outline"
                 className="mt-4"
               >
@@ -175,7 +252,7 @@ const CTASection = ({
             <UltraQuickSurvey />
             <div className="mt-8 text-center">
               <Button 
-                onClick={() => setShowUltraQuickSurvey(false)}
+                onClick={closeAllTests}
                 variant="outline"
                 className="mt-4"
               >

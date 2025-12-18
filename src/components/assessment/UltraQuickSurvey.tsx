@@ -589,7 +589,7 @@ export default function UltraQuickSurvey() {
 
   if (step === 'info') {
     return (
-      <div className="max-w-md mx-auto mt-8">
+      <div data-test-form className="max-w-md mx-auto mt-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">

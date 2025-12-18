@@ -125,18 +125,19 @@ const Hero = () => {
             <Container delay={0.0}>
                 <div 
                     onClick={() => setOpenConsultation(true)}
-                    className="pl-2 pr-1 py-1 rounded-full border border-foreground/10 hover:border-foreground/15 hover:bg-foreground/5 backdrop-blur-lg cursor-pointer flex items-center gap-2.5 select-none w-max mx-auto transition-all duration-300"
+                    className="pl-2 pr-1 py-1 rounded-full border border-foreground/10 hover:border-foreground/15 hover:bg-foreground/5 backdrop-blur-lg cursor-pointer flex items-center gap-2.5 select-none max-w-full mx-auto sm:w-max transition-all duration-300 flex-wrap sm:flex-nowrap justify-center sm:justify-start"
                 >
-                    <div className="w-3.5 h-3.5 rounded-full bg-primary/40 flex items-center justify-center relative">
+                    <div className="w-3.5 h-3.5 rounded-full bg-primary/40 flex items-center justify-center relative flex-shrink-0">
                         <div className="w-2.5 h-2.5 rounded-full bg-primary/60 flex items-center justify-center animate-ping">
                             <div className="w-2.5 h-2.5 rounded-full bg-primary/60 flex items-center justify-center animate-ping"></div>
                         </div>
                         <div className="w-1.5 h-1.5 rounded-full bg-primary flex items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                         </div>
                     </div>
-                    <span className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#b2a8fd] via-[#8678f9] to-[#c7d2fe] bg-clip-text text-sm text-transparent">
-                        The most trusted consultant in India
-                        <span className="text-xs text-secondary-foreground px-1.5 py-0.5 rounded-full bg-gradient-to-b from-foreground/20 to-foreground/10 flex items-center justify-center">
+                    <span className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#b2a8fd] via-[#8678f9] to-[#c7d2fe] bg-clip-text text-sm text-transparent flex-wrap sm:flex-nowrap">
+                        <span className="hidden sm:inline">The most trusted consultant in India</span>
+                        <span className="sm:hidden">Trusted Consultant</span>
+                        <span className="text-xs text-secondary-foreground px-1.5 py-0.5 rounded-full bg-gradient-to-b from-foreground/20 to-foreground/10 flex items-center justify-center whitespace-nowrap">
                             Book Free Consultation
                             <ArrowRightIcon className="w-3.5 h-3.5 ml-1 text-foreground/50" />
                         </span>
