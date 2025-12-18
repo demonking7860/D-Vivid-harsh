@@ -8,7 +8,6 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "../ui/progress";
 import { CheckCircle, Eye, Loader2 } from "lucide-react";
-import { PdfViewerModal } from "../ui/pdf-viewer-modal";
 
 interface Question {
   id: string;
@@ -332,7 +331,6 @@ export default function ConciseSurvey() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
-  const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const isNavigatingRef = useRef(false);
 
@@ -711,11 +709,9 @@ export default function ConciseSurvey() {
               if (data.s3Url) {
                 setPdfStatus('✅ PDF ready!');
                 console.log('✅ PDF available at S3 URL:', data.s3Url);
-                // Store PDF URL and open modal
+                // Store PDF URL for "See Result" button
                 setPdfUrl(data.s3Url);
-                setShowPdfModal(true);
                 setPdfStatus('');
-                console.log('✅ PDF modal opened');
               } else {
                 throw new Error('S3 URL not found in response');
               }
@@ -798,23 +794,33 @@ export default function ConciseSurvey() {
                 </div>
               )}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button 
-                  onClick={handleDownloadPDF}
-                  disabled={isDownloadingPDF}
-                  className={`bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 ${isDownloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isDownloadingPDF ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Detailed Report
-                    </>
-                  )}
-                </Button>
+                {pdfUrl ? (
+                  <Button 
+                    onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    See Result
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloadingPDF}
+                    className={`bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 ${isDownloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {isDownloadingPDF ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Detailed Report
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button 
                   onClick={() => window.location.reload()} 
                   variant="outline"
@@ -888,13 +894,6 @@ export default function ConciseSurvey() {
         </div>
       </div>
 
-      {/* PDF Viewer Modal */}
-      <PdfViewerModal
-        isOpen={showPdfModal}
-        onClose={() => setShowPdfModal(false)}
-        pdfUrl={pdfUrl}
-        fileName={`focused-assessment-report-${userInfo.email.split('@')[0]}.pdf`}
-      />
     </div>
   );
 }
