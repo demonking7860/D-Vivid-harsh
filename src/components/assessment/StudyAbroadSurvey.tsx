@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "../ui/progress";
 import { CheckCircle } from "lucide-react";
+import { PdfViewerModal } from "../ui/pdf-viewer-modal";
 
 interface Question {
   id: string;
@@ -715,6 +716,8 @@ export default function StudyAbroadSurvey() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const isNavigatingRef = useRef(false);
 
   const currentQuestion = surveyQuestions[currentQuestionIndex];
@@ -1021,19 +1024,13 @@ export default function StudyAbroadSurvey() {
               // New: S3 URL returned (faster, avoids timeout)
               const data = await response.json();
               if (data.s3Url) {
-                setPdfStatus('✅ Opening PDF in new tab...');
+                setPdfStatus('✅ PDF ready!');
                 console.log('✅ PDF available at S3 URL:', data.s3Url);
-                // Open PDF in new tab instead of downloading
-                const a = document.createElement('a');
-                a.href = data.s3Url;
-                a.target = '_blank'; // Open in new tab
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setPdfStatus('✅ Report opened in new tab!');
-                console.log('✅ PDF opened in new tab from S3');
-                setTimeout(() => setPdfStatus(''), 3000);
+                // Store PDF URL and open modal
+                setPdfUrl(data.s3Url);
+                setShowPdfModal(true);
+                setPdfStatus('');
+                console.log('✅ PDF modal opened');
               } else {
                 throw new Error('S3 URL not found in response');
               }
@@ -1127,7 +1124,7 @@ export default function StudyAbroadSurvey() {
                       Generating PDF...
                     </>
                   ) : (
-                    '📄 View Detailed Report'
+                    '📄 View Report'
                   )}
                 </Button>
                 <Button 
@@ -1198,6 +1195,14 @@ export default function StudyAbroadSurvey() {
           Select an option to continue
         </div>
       </div>
+
+      {/* PDF Viewer Modal */}
+      <PdfViewerModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        pdfUrl={pdfUrl}
+        fileName={`study-abroad-report-${userInfo.email.split('@')[0]}.pdf`}
+      />
     </div>
   );
 }

@@ -32,7 +32,7 @@ const Menu = () => {
                         Test
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                        <ul className="grid w-[400px] gap-3 p-4 md:w-[400px] md:grid-cols-2 lg:w-[500px] xl:w-[500px]">
+                        <ul className="grid w-full max-w-sm gap-3 p-4 sm:w-[400px] sm:grid-cols-2 lg:w-[500px] xl:w-[500px]">
                             <TestItem title="Comprehensive Assessment" testType="assessment" icon={<BookOpen className="w-5 h-5" />}>
                                 54-question test to evaluate overall study abroad readiness. (20–25 mins)
                             </TestItem>
