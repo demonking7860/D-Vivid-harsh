@@ -60,7 +60,6 @@ export function PdfViewerModal({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error("Download failed:", error);
       // Fallback: try direct link (may open in new tab for cross-origin)
       const a = document.createElement("a");
       a.href = pdfUrl;

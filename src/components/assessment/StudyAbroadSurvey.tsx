@@ -734,8 +734,6 @@ export default function StudyAbroadSurvey() {
     try {
       const surveyData = JSON.parse(localStorage.getItem('studyAbroadSurvey') || '{}');
       if (surveyData.analysisResults) {
-        console.log('🔄 Starting PDF generation...');
-        
         setPdfStatus('Generating PDF report...');
         
         // Send request immediately - server will handle generation
@@ -761,7 +759,6 @@ export default function StudyAbroadSurvey() {
             const data = await response.json();
             if (data.s3Url) {
               setPdfStatus('✅ PDF ready!');
-              console.log('✅ PDF available at S3 URL:', data.s3Url);
               // Store PDF URL for "See Result" button
               setPdfUrl(data.s3Url);
               setIsGeneratingPDF(false);
@@ -773,9 +770,7 @@ export default function StudyAbroadSurvey() {
           } else {
             // Fallback: blob returned (old behavior)
             setPdfStatus('Finalizing download...');
-            console.log('✅ PDF generated successfully');
             const blob = await response.blob();
-            console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
             
             // Direct download without any size checks
             const url = window.URL.createObjectURL(blob);
@@ -793,7 +788,6 @@ export default function StudyAbroadSurvey() {
             }, 1000);
             
             setPdfStatus('✅ Report downloaded successfully!');
-            console.log('✅ PDF download initiated');
             setIsGeneratingPDF(false);
             setPdfProgress(100);
             
@@ -802,7 +796,6 @@ export default function StudyAbroadSurvey() {
           }
         } else {
           const errorText = await response.text();
-          console.error('❌ PDF generation failed:', response.status, errorText);
           setPdfStatus('❌ PDF generation failed. Please try again.');
           setIsGeneratingPDF(false);
           setPdfProgress(0);
@@ -810,7 +803,6 @@ export default function StudyAbroadSurvey() {
           alert('PDF generation failed. Please try again.');
         }
       } else {
-        console.error('❌ No analysis results found');
         setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
         setIsGeneratingPDF(false);
         setPdfProgress(0);
@@ -818,7 +810,6 @@ export default function StudyAbroadSurvey() {
         alert('No analysis results found. Please complete the assessment again.');
       }
     } catch (error: any) {
-      console.error('❌ Error downloading PDF:', error);
       setPdfStatus('❌ Error generating PDF. Please try again.');
       setIsGeneratingPDF(false);
       setPdfProgress(0);
@@ -968,7 +959,6 @@ export default function StudyAbroadSurvey() {
           localStorage.setItem('studyAbroadSurvey', JSON.stringify(surveyData));
           setStep('completed');
         } catch (error) {
-          console.error('Error processing assessment:', error);
           // Fallback to basic completion
           const surveyData = {
             userInfo,

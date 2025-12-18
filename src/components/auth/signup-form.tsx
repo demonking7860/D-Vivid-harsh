@@ -66,7 +66,6 @@ const SignUpForm = () => {
 
             toast.loading(`Redirecting to ${strategy === "oauth_google" ? "Google" : "Apple"}...`);
         } catch (error) {
-            console.error(error);
             toast.error("An error occurred. Please try again.");
         }
     };
@@ -145,11 +144,9 @@ const SignUpForm = () => {
                 await setActive({ session: completeSignup.createdSessionId });
                 router.push("/auth/callback");
             } else {
-                console.error(JSON.stringify(completeSignup, null, 2));
                 toast.error("Invalid verification code. Please try again.");
             }
         } catch (error) {
-            console.error("Error:", JSON.stringify(error, null, 2));
             toast.error("An error occurred. Please try again");
         } finally {
             setIsCodeLoading(false);

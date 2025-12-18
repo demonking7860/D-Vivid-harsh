@@ -537,8 +537,6 @@ export default function ExpandedSurvey() {
     try {
       const surveyData = JSON.parse(localStorage.getItem('expandedSurvey') || '{}');
       if (surveyData.analysisResults) {
-        console.log('🔄 Starting PDF generation for Expanded Survey...');
-        
         setPdfStatus('Generating PDF report...');
         
         // Send request immediately - server will handle generation
@@ -564,7 +562,6 @@ export default function ExpandedSurvey() {
             const data = await response.json();
             if (data.s3Url) {
               setPdfStatus('✅ PDF ready!');
-              console.log('✅ PDF available at S3 URL:', data.s3Url);
               // Store PDF URL for "See Result" button
               setPdfUrl(data.s3Url);
               setIsGeneratingPDF(false);
@@ -576,9 +573,7 @@ export default function ExpandedSurvey() {
           } else {
             // Fallback: blob returned (old behavior)
             setPdfStatus('Finalizing download...');
-            console.log('✅ PDF generated successfully for Expanded Survey');
             const blob = await response.blob();
-            console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
             
             // Direct download without any size checks
             const url = window.URL.createObjectURL(blob);
@@ -595,7 +590,6 @@ export default function ExpandedSurvey() {
             }, 1000);
             
             setPdfStatus('✅ Report downloaded successfully!');
-            console.log('✅ PDF download initiated for Expanded Survey');
             setIsGeneratingPDF(false);
             setPdfProgress(100);
             
@@ -604,7 +598,6 @@ export default function ExpandedSurvey() {
           }
         } else {
           const errorText = await response.text();
-          console.error('❌ PDF generation failed:', response.status, errorText);
           setPdfStatus('❌ PDF generation failed. Please try again.');
           setIsGeneratingPDF(false);
           setPdfProgress(0);
@@ -612,7 +605,6 @@ export default function ExpandedSurvey() {
           alert('PDF generation failed. Please try again.');
         }
       } else {
-        console.error('❌ No analysis results found for Expanded Survey');
         setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
         setIsGeneratingPDF(false);
         setPdfProgress(0);
@@ -620,7 +612,6 @@ export default function ExpandedSurvey() {
         alert('No analysis results found. Please complete the assessment again.');
       }
     } catch (error: any) {
-      console.error('❌ Error downloading PDF for Expanded Survey:', error);
       setPdfStatus('❌ Error generating PDF. Please try again.');
       setIsGeneratingPDF(false);
       setPdfProgress(0);
@@ -811,12 +802,8 @@ export default function ExpandedSurvey() {
             questions: expandedQuestions // Include the actual questions
           };
           
-          console.log('🔄 Calling LLM analysis for Expanded Survey...');
-          console.log('📊 Data being sent to LLM:', JSON.stringify(comprehensiveData, null, 2));
-          
           // Save to localStorage for inspection
           localStorage.setItem('lastLLMPayload', JSON.stringify(comprehensiveData));
-          console.log('💾 Data saved to localStorage as "lastLLMPayload"');
           
           const response = await fetch('/api/analyze-results', {
             method: 'POST',
@@ -828,7 +815,6 @@ export default function ExpandedSurvey() {
 
           if (response.ok) {
             const analysisResults = await response.json();
-            console.log('✅ LLM analysis successful for Expanded Survey');
             
             // Save to localStorage with analysis results
             const surveyData = {
@@ -842,7 +828,6 @@ export default function ExpandedSurvey() {
             localStorage.setItem('expandedSurvey', JSON.stringify(surveyData));
             setStep('completed');
           } else {
-            console.error('❌ LLM analysis failed for Expanded Survey');
             // Fallback to basic completion
             const surveyData = {
               userInfo,
@@ -855,7 +840,6 @@ export default function ExpandedSurvey() {
             setStep('completed');
           }
         } catch (error) {
-          console.error('❌ Error in Expanded Survey analysis:', error);
           // Fallback to basic completion
           const surveyData = {
             userInfo,

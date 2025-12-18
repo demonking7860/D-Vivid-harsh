@@ -207,8 +207,6 @@ export default function UltraQuickSurvey() {
     try {
       const surveyData = JSON.parse(localStorage.getItem('ultraQuickSurvey') || '{}');
       if (surveyData.analysisResults) {
-        console.log('🔄 Starting PDF generation for Ultra Quick Survey...');
-        
         setPdfStatus('Generating PDF report...');
         
         // Send request immediately - server will handle generation
@@ -234,7 +232,6 @@ export default function UltraQuickSurvey() {
             const data = await response.json();
             if (data.s3Url) {
               setPdfStatus('✅ PDF ready!');
-              console.log('✅ PDF available at S3 URL:', data.s3Url);
               // Store PDF URL for "See Result" button
               setPdfUrl(data.s3Url);
               setIsGeneratingPDF(false);
@@ -246,9 +243,7 @@ export default function UltraQuickSurvey() {
           } else {
             // Fallback: blob returned (old behavior)
             setPdfStatus('Finalizing download...');
-            console.log('✅ PDF generated successfully for Ultra Quick Survey');
             const blob = await response.blob();
-            console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
             
             // Direct download without any size checks
             const url = window.URL.createObjectURL(blob);
@@ -265,7 +260,6 @@ export default function UltraQuickSurvey() {
             }, 1000);
             
             setPdfStatus('✅ Report downloaded successfully!');
-            console.log('✅ PDF download initiated for Ultra Quick Survey');
             setIsGeneratingPDF(false);
             setPdfProgress(100);
             
@@ -274,7 +268,6 @@ export default function UltraQuickSurvey() {
           }
         } else {
           const errorText = await response.text();
-          console.error('❌ PDF generation failed:', response.status, errorText);
           setPdfStatus('❌ PDF generation failed. Please try again.');
           setIsGeneratingPDF(false);
           setPdfProgress(0);
@@ -282,7 +275,6 @@ export default function UltraQuickSurvey() {
           alert('PDF generation failed. Please try again.');
         }
       } else {
-        console.error('❌ No analysis results found for Ultra Quick Survey');
         setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
         setIsGeneratingPDF(false);
         setPdfProgress(0);
@@ -290,7 +282,6 @@ export default function UltraQuickSurvey() {
         alert('No analysis results found. Please complete the assessment again.');
       }
     } catch (error: any) {
-      console.error('❌ Error downloading PDF for Ultra Quick Survey:', error);
       setPdfStatus('❌ Error generating PDF. Please try again.');
       setIsGeneratingPDF(false);
       setPdfProgress(0);
@@ -477,7 +468,6 @@ export default function UltraQuickSurvey() {
         try {
           // Validate userInfo before calculating scores
           if (!userInfo || !userInfo.email) {
-            console.error('❌ User info is missing or incomplete:', userInfo);
             alert('User information is missing. Please complete the form again.');
             setStep('info');
             return;
@@ -487,7 +477,6 @@ export default function UltraQuickSurvey() {
           
           // Validate studentData structure before sending
           if (!studentData.topicScoresArray || !Array.isArray(studentData.topicScoresArray) || studentData.topicScoresArray.length === 0) {
-            console.error('❌ Invalid studentData structure:', studentData);
             alert('Failed to calculate scores. Please try again.');
             setStep('info');
             return;
@@ -497,7 +486,6 @@ export default function UltraQuickSurvey() {
           for (const topic of studentData.topicScoresArray) {
             if (typeof topic.correct !== 'number' || typeof topic.total !== 'number' || 
                 typeof topic.weighted !== 'number' || typeof topic.weight !== 'number') {
-              console.error('❌ Invalid topic score structure:', topic);
               alert('Failed to calculate scores. Please try again.');
               setStep('info');
               return;
@@ -511,13 +499,8 @@ export default function UltraQuickSurvey() {
             questions: ultraQuickQuestions // Include the actual questions
           };
           
-          console.log('🔄 Calling LLM analysis for Ultra Quick Survey...');
-          console.log('📊 Data being sent to LLM:', JSON.stringify(comprehensiveData, null, 2));
-          console.log('📊 Student data structure:', JSON.stringify(studentData, null, 2));
-          
           // Save to localStorage for inspection
           localStorage.setItem('lastLLMPayload', JSON.stringify(comprehensiveData));
-          console.log('💾 Data saved to localStorage as "lastLLMPayload"');
           
           const response = await fetch('/api/analyze-results', {
             method: 'POST',
@@ -527,7 +510,6 @@ export default function UltraQuickSurvey() {
 
           if (response.ok) {
             const analysisResults = await response.json();
-            console.log('✅ LLM analysis successful for Ultra Quick Survey');
             
             const surveyData = {
               userInfo,
@@ -541,13 +523,6 @@ export default function UltraQuickSurvey() {
             setStep('completed');
           } else {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error', details: `Status: ${response.status}` }));
-            console.error('❌ LLM analysis failed for Ultra Quick Survey');
-            console.error('❌ Error status:', response.status);
-            console.error('❌ Error details:', errorData);
-            console.error('❌ Full error response:', JSON.stringify(errorData, null, 2));
-            
-            // Log the data that was sent for debugging
-            console.error('❌ Data sent to API:', JSON.stringify(studentData, null, 2));
             
             const surveyData = {
               userInfo,
@@ -560,7 +535,6 @@ export default function UltraQuickSurvey() {
             setStep('completed');
           }
         } catch (error) {
-          console.error('❌ Error in Ultra Quick Survey analysis:', error);
           const surveyData = {
             userInfo,
             responses: updatedResponses,

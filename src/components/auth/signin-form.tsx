@@ -63,7 +63,6 @@ const SignInForm = () => {
 
             toast.loading(`Redirecting to ${strategy === "oauth_google" ? "Google" : "Apple"}...`);
         } catch (error) {
-            console.error(error);
             toast.error("An error occurred. Please try again.");
         }
     };
@@ -98,12 +97,10 @@ const SignInForm = () => {
             //     await setActive({ session: signInAttempt.createdSessionId });
             //     setIsCodeSent(true);
             // } else {
-            //     console.error(JSON.stringify(signInAttempt, null, 2));
             //     toast.error("Invalid email. Please try again.");
             // }
 
         } catch (error: any) {
-            console.error(JSON.stringify(error, null, 2));
             switch (error.errors[0]?.code) {
                 case "form_identifier_not_found":
                     toast.error("This email is not registered. Please sign up first.");
@@ -148,12 +145,10 @@ const SignInForm = () => {
                 await setActive({ session: signInAttempt.createdSessionId });
                 router.push("/auth/callback");
             } else {
-                console.error(JSON.stringify(signInAttempt, null, 2));
                 toast.error("Invalid code. Please try again.");
             }
 
         } catch (error: any) {
-            console.error(JSON.stringify(error, null, 2));
             switch (error.errors[0]?.code) {
                 case "form_code_incorrect":
                     toast.error("Incorrect code. Please enter valid code.");
