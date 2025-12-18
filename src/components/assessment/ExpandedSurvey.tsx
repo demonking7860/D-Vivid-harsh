@@ -966,7 +966,7 @@ export default function ExpandedSurvey() {
                 Expanded Assessment Completed!
               </h2>
               <p className="text-lg text-muted-foreground">
-                Thank you for completing the Expanded Study Abroad Readiness Assessment. Your AI-powered analysis is ready!
+                Thank you for completing the Expanded Study Abroad Readiness Assessment. Your result will be available in 30 seconds. Hold tight!
               </p>
               <div className="bg-black dark:bg-black border border-purple-500/30 p-4 rounded-lg">
                 <p className="text-sm text-white">
