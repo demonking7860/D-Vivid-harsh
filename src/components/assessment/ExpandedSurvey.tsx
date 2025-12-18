@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
@@ -519,10 +519,144 @@ export default function ExpandedSurvey() {
   const [pdfStatus, setPdfStatus] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<{ name?: string; email?: string; mobile?: string }>({});
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const isNavigatingRef = useRef(false);
 
   const currentQuestion = expandedQuestions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / expandedQuestions.length) * 100;
+
+  // Define handleDownloadPDF function that can be called from useEffect
+  const handleDownloadPDF = async () => {
+    if (isDownloadingPDF) return;
+    
+    setIsDownloadingPDF(true);
+    setIsGeneratingPDF(true);
+    setPdfProgress(0);
+    setPdfStatus('Preparing your report...');
+    try {
+      const surveyData = JSON.parse(localStorage.getItem('expandedSurvey') || '{}');
+      if (surveyData.analysisResults) {
+        console.log('🔄 Starting PDF generation for Expanded Survey...');
+        
+        setPdfStatus('Generating PDF report...');
+        
+        // Send request immediately - server will handle generation
+        const response = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...surveyData.analysisResults,
+            userInfo: surveyData.userInfo,
+            surveyType: 'Expanded',
+            testType: surveyData.testType || 'Expanded Study Abroad Readiness Assessment'
+          })
+        });
+
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          
+          // Check if response is JSON (S3 URL) or blob
+          if (contentType?.includes('application/json')) {
+            // New: S3 URL returned (faster, avoids timeout)
+            const data = await response.json();
+            if (data.s3Url) {
+              setPdfStatus('✅ PDF ready!');
+              console.log('✅ PDF available at S3 URL:', data.s3Url);
+              // Store PDF URL for "See Result" button
+              setPdfUrl(data.s3Url);
+              setIsGeneratingPDF(false);
+              setPdfProgress(100);
+              setPdfStatus('');
+            } else {
+              throw new Error('S3 URL not found in response');
+            }
+          } else {
+            // Fallback: blob returned (old behavior)
+            setPdfStatus('Finalizing download...');
+            console.log('✅ PDF generated successfully for Expanded Survey');
+            const blob = await response.blob();
+            console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
+            
+            // Direct download without any size checks
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `expanded-study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            }, 1000);
+            
+            setPdfStatus('✅ Report downloaded successfully!');
+            console.log('✅ PDF download initiated for Expanded Survey');
+            setIsGeneratingPDF(false);
+            setPdfProgress(100);
+            
+            // Clear status message after 3 seconds
+            setTimeout(() => setPdfStatus(''), 3000);
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('❌ PDF generation failed:', response.status, errorText);
+          setPdfStatus('❌ PDF generation failed. Please try again.');
+          setIsGeneratingPDF(false);
+          setPdfProgress(0);
+          setTimeout(() => setPdfStatus(''), 5000);
+          alert('PDF generation failed. Please try again.');
+        }
+      } else {
+        console.error('❌ No analysis results found for Expanded Survey');
+        setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
+        setIsGeneratingPDF(false);
+        setPdfProgress(0);
+        setTimeout(() => setPdfStatus(''), 5000);
+        alert('No analysis results found. Please complete the assessment again.');
+      }
+    } catch (error: any) {
+      console.error('❌ Error downloading PDF for Expanded Survey:', error);
+      setPdfStatus('❌ Error generating PDF. Please try again.');
+      setIsGeneratingPDF(false);
+      setPdfProgress(0);
+      setTimeout(() => setPdfStatus(''), 5000);
+      alert('Error downloading PDF. Please try again.');
+    } finally {
+      setIsDownloadingPDF(false);
+      if (!pdfStatus) setPdfStatus('');
+    }
+  };
+
+  // Auto-trigger PDF generation when analysis completes
+  useEffect(() => {
+    if (step === 'completed' && !pdfUrl && !isGeneratingPDF && !isDownloadingPDF) {
+      // Start PDF generation automatically
+      handleDownloadPDF();
+    }
+  }, [step, pdfUrl, isGeneratingPDF, isDownloadingPDF]);
+
+  // Progress bar timer (30 seconds)
+  useEffect(() => {
+    if (isGeneratingPDF) {
+      setPdfProgress(0); // Reset progress when starting
+      const interval = setInterval(() => {
+        setPdfProgress(prev => {
+          if (prev >= 100) {
+            return 100;
+          }
+          return prev + (100 / 30); // 30 seconds to reach 100%
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setPdfProgress(0); // Reset when not generating
+    }
+  }, [isGeneratingPDF]);
 
   const validateForm = (): boolean => {
     const errors: { name?: string; email?: string; mobile?: string } = {};
@@ -859,98 +993,6 @@ export default function ExpandedSurvey() {
   }
 
   if (step === 'completed') {
-    const handleDownloadPDF = async () => {
-      if (isDownloadingPDF) return;
-      
-      setIsDownloadingPDF(true);
-      setPdfStatus('Preparing your report...');
-      try {
-        const surveyData = JSON.parse(localStorage.getItem('expandedSurvey') || '{}');
-        if (surveyData.analysisResults) {
-          console.log('🔄 Starting PDF generation for Expanded Survey...');
-          
-          setPdfStatus('Generating PDF report...');
-          
-          // Send request immediately - server will handle generation
-          const response = await fetch('/api/generate-pdf', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              ...surveyData.analysisResults,
-              userInfo: surveyData.userInfo,
-              surveyType: 'Expanded',
-              testType: surveyData.testType || 'Expanded Study Abroad Readiness Assessment'
-            })
-          });
-
-          if (response.ok) {
-            const contentType = response.headers.get('content-type');
-            
-            // Check if response is JSON (S3 URL) or blob
-            if (contentType?.includes('application/json')) {
-              // New: S3 URL returned (faster, avoids timeout)
-              const data = await response.json();
-              if (data.s3Url) {
-                setPdfStatus('✅ PDF ready!');
-                console.log('✅ PDF available at S3 URL:', data.s3Url);
-                // Store PDF URL for "See Result" button
-                setPdfUrl(data.s3Url);
-                setPdfStatus('');
-              } else {
-                throw new Error('S3 URL not found in response');
-              }
-            } else {
-              // Fallback: blob returned (old behavior)
-              setPdfStatus('Finalizing download...');
-              console.log('✅ PDF generated successfully for Expanded Survey');
-              const blob = await response.blob();
-              console.log('📄 Blob created, size:', blob.size, 'type:', blob.type);
-              
-              // Direct download without any size checks
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `expanded-study-abroad-report-${userInfo.email.split('@')[0]}.pdf`;
-              a.style.display = 'none';
-              document.body.appendChild(a);
-              a.click();
-              
-              setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-              }, 1000);
-              
-              setPdfStatus('✅ Report downloaded successfully!');
-              console.log('✅ PDF download initiated for Expanded Survey');
-              
-              // Clear status message after 3 seconds
-              setTimeout(() => setPdfStatus(''), 3000);
-            }
-          } else {
-            const errorText = await response.text();
-            console.error('❌ PDF generation failed:', response.status, errorText);
-            setPdfStatus('❌ PDF generation failed. Please try again.');
-            setTimeout(() => setPdfStatus(''), 5000);
-            alert('PDF generation failed. Please try again.');
-          }
-        } else {
-          console.error('❌ No analysis results found for Expanded Survey');
-          setPdfStatus('❌ No analysis results found. Please complete the assessment again.');
-          setTimeout(() => setPdfStatus(''), 5000);
-          alert('No analysis results found. Please complete the assessment again.');
-        }
-      } catch (error) {
-        console.error('❌ Error downloading PDF for Expanded Survey:', error);
-        setPdfStatus('❌ Error generating PDF. Please try again.');
-        setTimeout(() => setPdfStatus(''), 5000);
-        alert('Error downloading PDF. Please try again.');
-      } finally {
-        setIsDownloadingPDF(false);
-        if (!pdfStatus) setPdfStatus('');
-      }
-    };
 
     return (
       <div className="max-w-4xl mx-auto mt-8 space-y-6">
@@ -972,7 +1014,16 @@ export default function ExpandedSurvey() {
                   <strong>Assessment Type:</strong> Expanded Track (42 Questions)
                 </p>
               </div>
-              {pdfStatus && (
+              {isGeneratingPDF && (
+                <div className="w-full max-w-md mx-auto space-y-2 mb-4">
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Generating PDF...</span>
+                    <span>{Math.round(pdfProgress)}%</span>
+                  </div>
+                  <Progress value={pdfProgress} className="h-2" />
+                </div>
+              )}
+              {pdfStatus && !isGeneratingPDF && (
                 <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 mb-4">
                   <p className="text-sm text-purple-700 dark:text-purple-300 text-center">
                     {pdfStatus}
@@ -983,26 +1034,12 @@ export default function ExpandedSurvey() {
                 {pdfUrl ? (
                   <Button 
                     onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
-                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-lg px-8 py-6 text-white font-semibold"
+                    size="lg"
                   >
                     See Result
                   </Button>
-                ) : (
-                  <Button 
-                    onClick={handleDownloadPDF}
-                    disabled={isDownloadingPDF}
-                    className={`bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 ${isDownloadingPDF ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {isDownloadingPDF ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Generating PDF...
-                      </>
-                    ) : (
-                      '📄 View Detailed Report'
-                    )}
-                  </Button>
-                )}
+                ) : null}
                 <Button 
                   onClick={() => window.location.reload()} 
                   variant="outline"
