@@ -142,13 +142,17 @@ export async function POST(request: NextRequest) {
 
         // Upload the PDF with Content-Disposition header for inline viewing
         const fileName = `psychometric-report-${studentNameForKey}.pdf`;
+        const encodedFileName = encodeURIComponent(fileName);
+        
         await s3
           .putObject({
             Bucket: s3Bucket,
             Key: key,
             Body: pdfBuffer,
             ContentType: "application/pdf",
-            ContentDisposition: `inline; filename="${fileName}"`,
+            ContentDisposition: `inline; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`,
+            ACL: 'public-read', // Ensure public read access for inline viewing
+            CacheControl: 'public, max-age=3600'
           })
           .promise();
 

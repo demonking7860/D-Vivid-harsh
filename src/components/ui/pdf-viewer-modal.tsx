@@ -40,17 +40,37 @@ export function PdfViewerModal({
     setHasError(true);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!pdfUrl) return;
 
-    const a = document.createElement("a");
-    a.href = pdfUrl;
-    a.download = fileName;
-    a.target = "_blank";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      // Fetch PDF as blob and create download (works with cross-origin S3 URLs)
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback: try direct link (may open in new tab for cross-origin)
+      const a = document.createElement("a");
+      a.href = pdfUrl;
+      a.download = fileName;
+      a.target = "_blank";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   // Prevent body scroll when modal is open
@@ -65,7 +85,8 @@ export function PdfViewerModal({
     };
   }, [isOpen]);
 
-  if (!pdfUrl) return null;
+  // Early return if no URL or modal not open
+  if (!isOpen || !pdfUrl) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -133,6 +154,7 @@ export function PdfViewerModal({
 
           <iframe
             ref={iframeRef}
+            key={pdfUrl}
             src={pdfUrl}
             className={cn(
               "w-full h-full border-0",
