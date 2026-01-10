@@ -2,14 +2,12 @@ version: 1.0
 build:
   commands:
     pre-build:
-      - corepack enable
-      - corepack prepare pnpm@latest --activate
+      - corepack enable && corepack prepare pnpm@latest --activate
     build:
       - pnpm install --frozen-lockfile
-      - export NODE_OPTIONS="--max-old-space-size=4096"
-      - NODE_ENV=production pnpm build
-      - cp -r public .next/standalone/ || true
-      - cp -r .next/static .next/standalone/.next/static || true
+      - NODE_OPTIONS="--max-old-space-size=4096" NODE_ENV=production pnpm build
+      - cp -r public .next/standalone/ 2>/dev/null || true
+      - mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
 run:
   command: sh -c "cd .next/standalone && node server.js"
   network:
