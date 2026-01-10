@@ -97,14 +97,22 @@ const nextConfig = {
     generateEtags: false,
     compress: true,
     
-    // Ensure environment variables are available
+    // Environment variables configuration
+    // Note: Only public keys are hardcoded here. Secret keys must be set in App Runner Console.
     env: {
-        NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
-        NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN,
-        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-        PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY, 
+        // App Configuration
+        NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'D-Vivid Consultancy',
+        NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN || 'https://your-domain.vercel.app',
+        
+        // Clerk Public Key (safe to hardcode - this is a public key)
+        // This is required during build time for static page generation
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5vdWdoLXBhcmFrZWV0LTIuY2xlcmsuYWNjb3VudHMuZGV2JA',
+        
+        // Clerk URLs
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/signin',
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/signup',
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/',
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/',
     },
     
     // Better error handling for production
