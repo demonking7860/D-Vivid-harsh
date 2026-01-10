@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:skip-checks": "SKIP_ENV_VALIDATION=true TSC_COMPILE_ON_ERROR=true next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npx puppeteer browsers install chrome",

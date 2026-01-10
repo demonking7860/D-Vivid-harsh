@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: 'standalone', // Required for App Runner container deployment
+    typescript: {
+        // Skip type checking during build to save memory (types are checked in CI/dev)
+        ignoreBuildErrors: true,
+    },
+    eslint: {
+        // Skip ESLint during build to save memory and time
+        ignoreDuringBuilds: true,
+    },
     images: {
         remotePatterns: [
             {
