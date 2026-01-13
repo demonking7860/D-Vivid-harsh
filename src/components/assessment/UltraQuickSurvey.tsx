@@ -180,8 +180,10 @@ const ultraQuickQuestions: Question[] = [
 ];
 
 export default function UltraQuickSurvey() {
-  const [step, setStep] = useState<'info' | 'survey' | 'processing' | 'completed'>('info');
+  const [step, setStep] = useState<'info' | 'survey' | 'academicBackground' | 'processing' | 'completed'>('survey');
   const [userInfo, setUserInfo] = useState<UserInfo>({ name: '', email: '', mobile: '' });
+  const [academicBackground, setAcademicBackground] = useState<string>('');
+  const [otherFieldText, setOtherFieldText] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
@@ -347,20 +349,119 @@ export default function UltraQuickSurvey() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleInfoSubmit = (e: React.FormEvent) => {
+  const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // Proceed to survey - lead data will be sent to CRM when PDF is generated
-      setStep('survey');
-      // Scroll to show the question section after form submission
-      setTimeout(() => {
-        const testSection = document.getElementById('psychometric-test');
-        if (testSection) {
-          const yOffset = 200; // Offset to show questions, not just the heading
-          const y = testSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-          window.scrollTo({ top: y, behavior: 'smooth' });
+      setStep('processing');
+      
+      try {
+        // First, send user info to create-lead API (LeadSquared)
+        try {
+          const leadResponse = await fetch('/api/create-lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: userInfo.name,
+              email: userInfo.email,
+              phone: userInfo.mobile,
+              surveyType: 'UltraQuick'
+            })
+          });
+          
+          if (leadResponse.ok) {
+            const leadData = await leadResponse.json();
+            console.log('✅ Lead created/updated in LeadSquared:', leadData);
+          } else {
+            console.warn('⚠️ Failed to create lead in LeadSquared, continuing with analysis');
+          }
+        } catch (leadError) {
+          console.error('❌ Error creating lead, continuing with analysis:', leadError);
         }
-      }, 150);
+        
+        // Get saved responses and academic background from localStorage
+        const savedSurveyData = JSON.parse(localStorage.getItem('ultraQuickSurvey') || '{}');
+        const savedResponses = savedSurveyData.responses || responses;
+        const academicBackground = savedSurveyData.academicBackground || 'Not specified';
+        
+        // Calculate scores and send to analyze-results API
+        const studentData = calculateScores(savedResponses);
+        
+        // Validate studentData structure before sending
+        if (!studentData.topicScoresArray || !Array.isArray(studentData.topicScoresArray) || studentData.topicScoresArray.length === 0) {
+          alert('Failed to calculate scores. Please try again.');
+          setStep('info');
+          return;
+        }
+        
+        // Validate each topic score has required fields
+        for (const topic of studentData.topicScoresArray) {
+          if (typeof topic.correct !== 'number' || typeof topic.total !== 'number' || 
+              typeof topic.weighted !== 'number' || typeof topic.weight !== 'number') {
+            alert('Failed to calculate scores. Please try again.');
+            setStep('info');
+            return;
+          }
+        }
+        
+        // Create comprehensive data object with both scores and raw responses
+        const comprehensiveData = {
+          ...studentData,
+          rawResponses: savedResponses, // Include individual question-answer pairs
+          questions: ultraQuickQuestions // Include the actual questions
+        };
+        
+        // Save to localStorage for inspection
+        localStorage.setItem('lastLLMPayload', JSON.stringify(comprehensiveData));
+        
+        const response = await fetch('/api/analyze-results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...studentData,
+            academicBackground: academicBackground
+          })
+        });
+
+        if (response.ok) {
+          const analysisResults = await response.json();
+          
+          const surveyData = {
+            userInfo,
+            responses: savedResponses,
+            completedAt: new Date().toISOString(),
+            testType: 'Quick Check Study Abroad Readiness Assessment',
+            analysisResults
+          };
+          
+          localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
+          setStep('completed');
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error', details: `Status: ${response.status}` }));
+          
+          const surveyData = {
+            userInfo,
+            responses: savedResponses,
+            completedAt: new Date().toISOString(),
+            testType: 'Quick Check Study Abroad Readiness Assessment'
+          };
+          
+          localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
+          setStep('completed');
+        }
+      } catch (error) {
+        console.error('Error processing assessment:', error);
+        const savedSurveyData = JSON.parse(localStorage.getItem('ultraQuickSurvey') || '{}');
+        const savedResponses = savedSurveyData.responses || responses;
+        const surveyData = {
+          userInfo,
+          responses: savedResponses,
+          completedAt: new Date().toISOString(),
+          testType: 'Quick Check Study Abroad Readiness Assessment'
+        };
+        
+        localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
+        setStep('completed');
+      }
     }
   };
 
@@ -463,88 +564,24 @@ export default function UltraQuickSurvey() {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setCurrentAnswer('');
       } else {
-        setStep('processing');
-        
-        try {
-          // Validate userInfo before calculating scores
-          if (!userInfo || !userInfo.email) {
-            alert('User information is missing. Please complete the form again.');
-            setStep('info');
-            return;
+        // All questions answered - save responses and move to info form
+        const surveyData = {
+          userInfo,
+          responses: updatedResponses,
+          completedAt: new Date().toISOString(),
+          testType: 'Quick Check Study Abroad Readiness Assessment'
+        };
+        localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
+        setStep('academicBackground');
+        // Scroll to academic background form
+        setTimeout(() => {
+          const formElement = document.querySelector('[data-test-form]');
+          if (formElement) {
+            const yOffset = window.innerWidth < 640 ? -120 : -100;
+            const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
           }
-          
-          const studentData = calculateScores(updatedResponses);
-          
-          // Validate studentData structure before sending
-          if (!studentData.topicScoresArray || !Array.isArray(studentData.topicScoresArray) || studentData.topicScoresArray.length === 0) {
-            alert('Failed to calculate scores. Please try again.');
-            setStep('info');
-            return;
-          }
-          
-          // Validate each topic score has required fields
-          for (const topic of studentData.topicScoresArray) {
-            if (typeof topic.correct !== 'number' || typeof topic.total !== 'number' || 
-                typeof topic.weighted !== 'number' || typeof topic.weight !== 'number') {
-              alert('Failed to calculate scores. Please try again.');
-              setStep('info');
-              return;
-            }
-          }
-          
-          // Create comprehensive data object with both scores and raw responses
-          const comprehensiveData = {
-            ...studentData,
-            rawResponses: updatedResponses, // Include individual question-answer pairs
-            questions: ultraQuickQuestions // Include the actual questions
-          };
-          
-          // Save to localStorage for inspection
-          localStorage.setItem('lastLLMPayload', JSON.stringify(comprehensiveData));
-          
-          const response = await fetch('/api/analyze-results', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(studentData)
-          });
-
-          if (response.ok) {
-            const analysisResults = await response.json();
-            
-            const surveyData = {
-              userInfo,
-              responses: updatedResponses,
-              completedAt: new Date().toISOString(),
-              testType: 'Quick Check Study Abroad Readiness Assessment',
-              analysisResults
-            };
-            
-            localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
-            setStep('completed');
-          } else {
-            const errorData = await response.json().catch(() => ({ error: 'Unknown error', details: `Status: ${response.status}` }));
-            
-            const surveyData = {
-              userInfo,
-              responses: updatedResponses,
-              completedAt: new Date().toISOString(),
-              testType: 'Quick Check Study Abroad Readiness Assessment'
-            };
-            
-            localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
-            setStep('completed');
-          }
-        } catch (error) {
-          const surveyData = {
-            userInfo,
-            responses: updatedResponses,
-            completedAt: new Date().toISOString(),
-            testType: 'Quick Check Study Abroad Readiness Assessment'
-          };
-          
-          localStorage.setItem('ultraQuickSurvey', JSON.stringify(surveyData));
-          setStep('completed');
-        }
+        }, 150);
       }
     }
   };
@@ -561,16 +598,129 @@ export default function UltraQuickSurvey() {
     }
   };
 
+  if (step === 'academicBackground') {
+    // Get the localStorage key based on survey type
+    const storageKey = 'ultraQuickSurvey';
+    
+    return (
+      <div data-test-form className="max-w-md mx-auto mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+              Academic Background
+            </CardTitle>
+            <CardDescription className="text-center">
+              Help us personalize your recommendations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">
+                What is your current academic background/field of study?
+              </Label>
+              <RadioGroup
+                value={academicBackground}
+                onValueChange={(value) => {
+                  setAcademicBackground(value);
+                  if (value !== 'D') {
+                    setOtherFieldText(''); // Clear text when switching away from D
+                  }
+                }}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="A" id="acad-A" />
+                    <Label htmlFor="acad-A" className="font-normal cursor-pointer">
+                      Commerce/Business (B.Com, BBA, MBA, etc.)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="B" id="acad-B" />
+                    <Label htmlFor="acad-B" className="font-normal cursor-pointer">
+                      Science/Engineering (B.Sc, B.Tech, M.Tech, etc.)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="C" id="acad-C" />
+                    <Label htmlFor="acad-C" className="font-normal cursor-pointer">
+                      Arts/Humanities (B.A, M.A, etc.)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="D" id="acad-D" />
+                    <Label htmlFor="acad-D" className="font-normal cursor-pointer">
+                      Other/Interdisciplinary
+                    </Label>
+                  </div>
+                </div>
+              </RadioGroup>
+              
+              {academicBackground === 'D' && (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="other-field">Please specify your field of study</Label>
+                  <Input
+                    id="other-field"
+                    type="text"
+                    placeholder="e.g., Medicine, Law, Architecture, etc."
+                    value={otherFieldText}
+                    onChange={(e) => setOtherFieldText(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+              )}
+              
+              <Button
+                onClick={() => {
+                  if (!academicBackground) {
+                    alert('Please select your academic background');
+                    return;
+                  }
+                  if (academicBackground === 'D' && !otherFieldText.trim()) {
+                    alert('Please specify your field of study');
+                    return;
+                  }
+                  // Save academic background to survey data
+                  const savedSurveyData = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                  const updatedData = {
+                    ...savedSurveyData,
+                    academicBackground: academicBackground === 'D' ? otherFieldText.trim() : 
+                      academicBackground === 'A' ? 'Commerce/Business' :
+                      academicBackground === 'B' ? 'Science/Engineering' :
+                      'Arts/Humanities'
+                  };
+                  localStorage.setItem(storageKey, JSON.stringify(updatedData));
+                  setStep('info');
+                  // Scroll to info form
+                  setTimeout(() => {
+                    const formElement = document.querySelector('[data-test-form]');
+                    if (formElement) {
+                      const yOffset = window.innerWidth < 640 ? -120 : -100;
+                      const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }, 150);
+                }}
+                className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (step === 'info') {
     return (
       <div data-test-form className="max-w-md mx-auto mt-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
-              Ultra-Quick Assessment
+              Almost Done!
             </CardTitle>
             <CardDescription className="text-center">
-              Fast snapshot check - 12 questions covering all categories (3-5 minutes)
+              Please provide your details to receive your personalized report
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -641,7 +791,7 @@ export default function UltraQuickSurvey() {
                 type="submit" 
                 className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
               >
-                Start Ultra-Quick Assessment
+                Get My Report
               </Button>
             </form>
           </CardContent>

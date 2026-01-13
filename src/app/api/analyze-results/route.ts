@@ -13,6 +13,7 @@
         weight: number
         total: number
       }>
+      academicBackground?: string
     }
  //fun
     // Removed LLMResponse interface - we now return data in the format expected by generate-pdf
@@ -137,8 +138,14 @@
         // Prepare the prompts - Optimized for structured output
         const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.
 
-INPUT: Pre-calculated dimension scores (0-100%) and weighted CRI score.
+INPUT: Pre-calculated dimension scores (0-100%) and weighted CRI score, plus student's academic background.
 OUTPUT: Only valid JSON with STRUCTURED ARRAYS, no markdown or explanations.
+
+ACADEMIC BACKGROUND RULES:
+- Commerce/Business students: Recommend Business, Finance, Accounting, Management, MBA programs. Suggest universities known for business schools (e.g., Rotman, Ivey, Schulich in Canada; Trinity, UCD in Ireland; WHU, Mannheim in Germany).
+- Science/Engineering students: Recommend STEM programs (Computer Science, Engineering, Data Science, etc.). Suggest technical universities (e.g., TU Munich, RWTH Aachen in Germany; U of T, UBC in Canada).
+- Arts/Humanities students: Recommend Liberal Arts, Social Sciences, Literature, Philosophy programs. Suggest universities with strong humanities departments.
+- Other/Interdisciplinary: Use the specified field to recommend appropriate programs and universities that match the student's background.
 
 COUNTRY-FIT RULES:
 - Financial <60: Prefer Germany, Canada, Ireland (lower costs)
@@ -149,6 +156,8 @@ COUNTRIES TO CONSIDER: Canada, Australia, UK, Germany, USA, Singapore, Ireland, 
 
 KNOWLEDGE REQUIREMENTS:
 - Use current study-abroad trends for Indian students
+- Match program recommendations to student's academic background
+- Suggest universities strong in the student's field of study
 - Prefer commonly chosen universities
 - If unsure, choose widely recognized public universities
 
@@ -173,6 +182,7 @@ JSON RULES: No trailing commas, escape quotes with \\", numbers not strings, no 
 STUDENT: ${studentData.userName}
 EMAIL: ${studentData.userEmail || 'N/A'}
 PHONE: ${studentData.userPhone || 'N/A'}
+ACADEMIC BACKGROUND: ${studentData.academicBackground || 'Not specified'}
 
 DIMENSION SCORES (pre-calculated percentages):
 ${Object.entries(preCalculatedScores).map(([name, score]) => `- ${name}: ${score}%`).join('\n')}
