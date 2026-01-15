@@ -31,7 +31,7 @@ const contactInfo = {
 };
 
 const socialLinks = [
-  { name: "Website", icon: Globe, href: "https://d-vivid-consultant.vercel.app", color: "text-blue-400" },
+  { name: "Website", icon: Globe, href: "https://www.dvividconsultant.com/", color: "text-blue-400" },
   { name: "LinkedIn", icon: Linkedin, href: "https://www.linkedin.com/company/dvividconsultant/", color: "text-blue-600" },
   { name: "Instagram", icon: Instagram, href: "https://www.instagram.com/dvividconsultant/", color: "text-pink-500" },
   { name: "Facebook", icon: Facebook, href: "https://www.facebook.com/dvividconsultant?mibextid=LQQJ4d", color: "text-blue-500" },

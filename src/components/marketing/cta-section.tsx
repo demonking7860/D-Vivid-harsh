@@ -65,15 +65,15 @@ const CTASection = ({
         break;
     }
     
-    // Scroll to form after test opens
+    // Scroll to question container after test opens
     setTimeout(() => {
-      const formElement = document.querySelector('[data-test-form]');
-      if (formElement) {
-        const yOffset = window.innerWidth < 640 ? -120 : -100;
-        const y = formElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      const questionContainer = document.querySelector('[data-question-container]');
+      if (questionContainer) {
+        const yOffset = window.innerWidth < 640 ? -80 : -100;
+        const y = questionContainer.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
-    }, 300);
+    }, 400);
   }, []);
 
   // Helper function to close all tests with history management

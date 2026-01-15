@@ -626,6 +626,18 @@ export default function ExpandedSurvey() {
   };
 
   // Auto-trigger PDF generation when analysis completes
+  // Restore answer when question index changes
+  useEffect(() => {
+    if (step === 'survey') {
+      const savedResponse = responses.find(r => r.questionId === currentQuestion.id);
+      if (savedResponse) {
+        setCurrentAnswer(savedResponse.answer);
+      } else {
+        setCurrentAnswer('');
+      }
+    }
+  }, [currentQuestionIndex, currentQuestion.id, step, responses]);
+
   useEffect(() => {
     if (step === 'completed' && !pdfUrl && !isGeneratingPDF && !isDownloadingPDF) {
       // Start PDF generation automatically
@@ -864,7 +876,9 @@ export default function ExpandedSurvey() {
         section: currentQuestion.section
       };
 
-      const updatedResponses = [...responses, newResponse];
+      // Remove any existing response for this question, then add the new one
+      const updatedResponses = responses.filter(r => r.questionId !== currentQuestion.id);
+      updatedResponses.push(newResponse);
       setResponses(updatedResponses);
 
       if (currentQuestionIndex < expandedQuestions.length - 1) {
@@ -896,12 +910,26 @@ export default function ExpandedSurvey() {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       isNavigatingRef.current = false; // Reset navigation flag
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-      // Find previous answer
-      const prevResponse = responses.find(r => r.questionId === expandedQuestions[currentQuestionIndex - 1].id);
-      setCurrentAnswer(prevResponse?.answer || '');
-      // Remove the current question's response if it exists
-      setResponses(responses.filter(r => r.questionId !== currentQuestion.id));
+      
+      // Save current answer if it exists
+      let updatedResponses = [...responses];
+      if (currentAnswer) {
+        const currentResponse: Response = {
+          questionId: currentQuestion.id,
+          answer: currentAnswer,
+          section: currentQuestion.section
+        };
+        
+        // Update or add the current response (don't remove it)
+        updatedResponses = updatedResponses.filter(r => r.questionId !== currentQuestion.id);
+        updatedResponses.push(currentResponse);
+        setResponses(updatedResponses);
+      }
+      
+      // Navigate to previous question
+      const newIndex = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(newIndex);
+      // Answer will be restored by useEffect
     }
   };
 
@@ -1190,7 +1218,7 @@ export default function ExpandedSurvey() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-8 space-y-6">
+    <div data-question-container className="max-w-4xl mx-auto mt-8 space-y-6">
       {/* Progress Header */}
       <Card>
         <CardContent className="pt-6">
@@ -1219,7 +1247,16 @@ export default function ExpandedSurvey() {
         <CardContent className="space-y-4">
           <RadioGroup value={currentAnswer} onValueChange={handleAnswerSelect}>
             {Object.entries(currentQuestion.options).map(([key, value]) => (
-              <div key={key} className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50">
+              <div 
+                key={key} 
+                className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50 cursor-pointer"
+                onClick={() => {
+                  // Handle re-selection: if same answer is clicked, manually trigger handleAnswerSelect
+                  if (currentAnswer === key) {
+                    handleAnswerSelect(key);
+                  }
+                }}
+              >
                 <RadioGroupItem value={key} id={`${currentQuestion.id}-${key}`} />
                 <Label 
                   htmlFor={`${currentQuestion.id}-${key}`} 
@@ -1242,9 +1279,17 @@ export default function ExpandedSurvey() {
         >
           Previous
         </Button>
-        <div className="text-sm text-muted-foreground flex items-center">
-          Select an option to continue
-        </div>
+        <Button
+          onClick={() => {
+            if (currentAnswer && !isNavigatingRef.current) {
+              handleNext();
+            }
+          }}
+          disabled={!currentAnswer || isNavigatingRef.current}
+          className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
+        >
+          Next
+        </Button>
       </div>
 
     </div>
