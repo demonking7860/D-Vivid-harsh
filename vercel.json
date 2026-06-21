@@ -1,0 +1,21 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm run vercel-build",
+  "installCommand": "pnpm install",
+  "functions": {
+    "src/app/api/generate-pdf/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "src/app/api/analyze-results/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "env": {
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
+    "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome-stable"
+  },
+  "regions": ["iad1"],
+  "outputDirectory": ".next"
+}
