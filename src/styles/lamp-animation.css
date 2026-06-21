@@ -1,0 +1,138 @@
+/* Lamp Animation CSS - Required for fixed-cta-section.tsx */
+
+.lamp-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.lamp-light {
+  background: conic-gradient(from 180deg at 50% 0%, 
+    transparent 0deg, 
+    rgba(255, 255, 255, 0.1) 45deg,
+    rgba(255, 255, 255, 0.2) 90deg,
+    rgba(255, 255, 255, 0.1) 135deg, 
+    transparent 180deg);
+  clip-path: polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%);
+  mask-image: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.3) 20%, 
+    rgba(255, 255, 255, 0.1) 70%, 
+    transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.3) 20%, 
+    rgba(255, 255, 255, 0.1) 70%, 
+    transparent 100%);
+}
+
+.lamp-gradient {
+  background: linear-gradient(135deg, 
+    hsl(var(--primary) / 0.1) 0%, 
+    hsl(var(--primary) / 0.2) 50%, 
+    transparent 100%);
+  animation: lampGlow 4s ease-in-out infinite alternate;
+}
+
+.lamp-base {
+  background: linear-gradient(180deg, 
+    hsl(var(--foreground) / 0.8) 0%, 
+    hsl(var(--foreground) / 0.4) 50%, 
+    hsl(var(--foreground) / 0.2) 100%);
+  box-shadow: 
+    0 0 20px hsl(var(--primary) / 0.1),
+    inset 0 -2px 4px hsl(var(--foreground) / 0.2);
+}
+
+.lamp-cord {
+  background: linear-gradient(90deg, 
+    hsl(var(--border)) 0%, 
+    hsl(var(--foreground) / 0.6) 50%, 
+    hsl(var(--border)) 100%);
+  box-shadow: 0 0 2px hsl(var(--foreground) / 0.3);
+}
+
+.lamp-bulb {
+  background: radial-gradient(circle at center, 
+    rgba(255, 255, 200, 0.8) 0%, 
+    rgba(255, 255, 150, 0.4) 40%, 
+    rgba(255, 255, 100, 0.1) 70%, 
+    transparent 100%);
+  animation: bulbGlow 3s ease-in-out infinite alternate;
+  box-shadow: 
+    0 0 15px rgba(255, 255, 200, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.floating-particles {
+  animation: floatUp 6s linear infinite;
+}
+
+.lamp-ambient-light {
+  background: radial-gradient(ellipse at center, 
+    hsl(var(--primary) / 0.15) 0%, 
+    hsl(var(--primary) / 0.08) 40%, 
+    transparent 70%);
+  animation: ambientPulse 5s ease-in-out infinite;
+}
+
+@keyframes lampGlow {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes bulbGlow {
+  0% { 
+    filter: brightness(0.8) saturate(0.9);
+    transform: scale(0.98);
+  }
+  100% { 
+    filter: brightness(1.2) saturate(1.1);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes floatUp {
+  0% { 
+    transform: translateY(20px) scale(0);
+    opacity: 0;
+  }
+  20% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% { 
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translateY(-100px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes ambientPulse {
+  0%, 100% { 
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  50% { 
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+/* Fallbacks for older browsers */
+@supports not (background: conic-gradient(from 0deg, red, blue)) {
+  .lamp-light {
+    background: linear-gradient(to bottom, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.2) 50%, 
+      transparent 100%);
+  }
+}
+
+@supports not (clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)) {
+  .lamp-light {
+    border-radius: 50% 50% 0 0;
+    transform: scaleY(2);
+  }
+}

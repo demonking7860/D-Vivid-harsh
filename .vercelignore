@@ -1,0 +1,51 @@
+# Development files
+.git
+.github
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/.pnpm/@types
+node_modules/.pnpm/@dimforge
+node_modules/.pnpm/@unrs
+node_modules/.pnpm/*-linux-*
+node_modules/.pnpm/*-darwin-*
+node_modules/.pnpm/*-win32-*
+
+# Test files
+*.test.js
+*.test.ts
+test-*.js
+*.test.json
+test-*.json
+*-test-*.json
+complete-test-*.json
+llm-test-*.json
+perplexity-test-*.json
+*.test.pdf
+test-*.pdf
+
+# Documentation
+README.md
+VERCEL_DEPLOY.md
+*.md
+
+# Build artifacts
+.next/cache
+.next/static/chunks/pages/_app-*.js
+.next/static/chunks/pages/_error-*.js
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Puppeteer
+.local-chromium
