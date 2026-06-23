@@ -1,0 +1,92 @@
+﻿diff --git a/src/components/marketing/consultation-card.tsx b/src/components/marketing/consultation-card.tsx
+index 2aef013..e2e7dc5 100644
+--- a/src/components/marketing/consultation-card.tsx
++++ b/src/components/marketing/consultation-card.tsx
+@@ -25,7 +25,7 @@ const contactInfo = {
+     "501, 5th Floor, Rajdeep Dreams, Rambaug Kankariya Rd, beside IDBI Bank, Prankunj Society, Pushpkunj, Maninagar, Ahmedabad, Gujarat 380008"
+   ],
+   suratOffices: [
+-    "531, Laxmi Enclave -2, opp. Gajera International School, Katargam",
++    "335 - 336, Rajhans Ornate, Near Jani Farsan, Parle Point, Surat",
+     "452, Opera Business Hub, Lajamni Chowk, Maruti Dham Society, Mota Varachha, Surat"
+   ],
+ };
+diff --git a/src/components/marketing/footer.tsx b/src/components/marketing/footer.tsx
+index cf630df..65b32e0 100644
+--- a/src/components/marketing/footer.tsx
++++ b/src/components/marketing/footer.tsx
+@@ -109,12 +109,12 @@ const Footer = () => {
+                                 <h5 className="text-base font-medium mb-4 text-foreground">Surat Offices:</h5>
+                                 <div className="space-y-4 text-sm text-muted-foreground">
+                                     <a
+-                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+Surat+%7C+Study+abroad+consultant+%7C+Katargam/@21.2322842,72.834286,17z/data=!4m6!3m5!1s0x3be04f8f66a71d81:0x2921c494c87dce14!8m2!3d21.2322792!4d72.8368609!16s%2Fg%2F11vywsvvrr?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
++                                        href="https://www.google.com/maps/search/?api=1&query=335+336+Rajhans+Ornate+Near+Jani+Farsan+Parle+Point+Surat"
+                                         target="_blank"
+                                         rel="noopener noreferrer"
+                                         className="block hover:text-purple-400 transition-colors cursor-pointer"
+                                     >
+-                                        531, Laxmi Enclave -2, opp. Gajera International School, Katargam
++                                        335 - 336, Rajhans Ornate, Near Jani Farsan, Parle Point, Surat
+                                     </a>
+                                     <a
+                                         href="https://www.google.com/maps/place/D+Vivid+Consultant+Mota+Varachha/@21.2379804,72.8888158,17z/data=!4m6!3m5!1s0x3be04fa3a01e4843:0xa8e298543970846a!8m2!3d21.2379804!4d72.8888158!16s%2Fg%2F11pysdntj0?entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
+diff --git a/src/constants/reviews.ts b/src/constants/reviews.ts
+index 0c7c265..c3f95c2 100644
+--- a/src/constants/reviews.ts
++++ b/src/constants/reviews.ts
+@@ -10,48 +10,42 @@ export const REVIEWS: REVIEW[] = [
+         name: "Pooja Soni",
+         username: "@poojasoni",
+         review: "D-Vivid made my study abroad journey seamless! Their guidance helped me prepare for exams effectively and secure my visa faster than I expected. Truly better than any other consultancy!",
+-        img: "https://randomuser.me/api/portraits/women/21.jpg"
++        img: "/profiles/pooja-soni.jpg"
+     },
+     {
+         name: "Krishna Patel",
+         username: "@krishnapatel",
+         review: "The mentors at D-Vivid were amazing. They helped me choose the right university, prepare for my tests, and even guided me through scholarships. Highly recommended!",
+-        img: "https://randomuser.me/api/portraits/men/22.jpg"
++        img: "/profiles/krishna-patel.webp"
+     },
+     {
+         name: "Yatri Parekh",
+         username: "@yatriparekh",
+         review: "I loved how personalized D-VividΓÇÖs consultancy was. From test prep to visa assistance, they went above and beyond to ensure I was ready every step of the way.",
+-        img: "https://randomuser.me/api/portraits/women/23.jpg"
++        img: "/profiles/yatri-parekh.png"
+     },
+     {
+         name: "Liza Patel",
+         username: "@lizapatel",
+         review: "Thanks to D-Vivid, I got into my dream university faster than I imagined. Their support in exams, applications, and visa processes was unmatched.",
+-        img: "https://randomuser.me/api/portraits/women/24.jpg"
++        img: "/profiles/liza-patel.webp"
+     },
+     {
+         name: "Arjun Singh",
+         username: "@arjunsingh",
+         review: "D-Vivid guided me through every stage of my study abroad journey, helping me secure scholarships and prepare for interviews. Their mentorship made all the difference.",
+-        img: "https://randomuser.me/api/portraits/men/25.jpg"
++        img: "/profiles/arjun-singh.jpg"
+     },
+     {
+         name: "Priya Nair",
+         username: "@priyanair",
+         review: "I couldnΓÇÖt have asked for better guidance. D-Vivid helped me prepare for exams, choose the best universities, and get my visa quickly.",
+-        img: "https://randomuser.me/api/portraits/women/26.jpg"
++        img: "/profiles/priya-nair.webp"
+     },
+     {
+         name: "Rohan Mehta",
+         username: "@rohanmehta",
+         review: "The support from D-Vivid is unmatched. From exam prep to university applications, they ensured everything was smooth and fast.",
+-        img: "https://randomuser.me/api/portraits/men/27.jpg"
+-    },
+-    {
+-        name: "Sneha Patel",
+-        username: "@snehapatel",
+-        review: "D-VividΓÇÖs consultancy helped me stay confident throughout the process. Their guidance in exams, applications, and visas was incredible.",
+-        img: "https://randomuser.me/api/portraits/women/28.jpg"
++        img: "/profiles/rohan-mehta.webp"
+     }
+ ];

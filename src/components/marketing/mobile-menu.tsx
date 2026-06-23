@@ -47,7 +47,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                             setIsOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-lg hover:text-muted-foreground font-normal transition transform rounded-md cursor-pointer text-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                        className="w-full px-4 py-2 text-lg font-medium transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9] hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                     >
                         <div className="flex items-center w-full text-start">
                             <UserCog className="w-4 h-4 mr-2" />
@@ -56,7 +56,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                     </li>
                     <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-2" className="border-transparent">
-                            <AccordionTrigger className="px-4 py-2 text-lg hover:text-muted-foreground font-normal">
+                            <AccordionTrigger className="px-4 py-2 text-lg text-[#6d28d9] hover:text-[#4c1d95] font-medium">
                                 <span className="flex items-center">
                                     <CopyCheck className="w-4 h-4 mr-2" />
                                     Test
@@ -85,7 +85,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                             }, 500);
                                         }, 800);
                                     }}
-                                    className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                                    className="w-full px-4 py-2 text-lg font-normal transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9]/80 hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                                 >
                                     <div className="flex items-center w-full text-start">
                                         <BookOpen className="w-4 h-4 mr-2" />
@@ -114,7 +114,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                             }, 500);
                                         }, 800);
                                     }}
-                                    className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                                    className="w-full px-4 py-2 text-lg font-normal transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9]/80 hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                                 >
                                     <div className="flex items-center w-full text-start">
                                         <Brain className="w-4 h-4 mr-2" />
@@ -143,7 +143,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                             }, 500);
                                         }, 800);
                                     }}
-                                    className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                                    className="w-full px-4 py-2 text-lg font-normal transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9]/80 hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                                 >
                                     <div className="flex items-center w-full text-start">
                                         <Globe className="w-4 h-4 mr-2" />
@@ -172,7 +172,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                                             }, 500);
                                         }, 800);
                                     }}
-                                    className="w-full px-4 py-2 text-lg font-normal transition transform rounded-md cursor-pointer text-foreground/80 hover:text-muted-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                                    className="w-full px-4 py-2 text-lg font-normal transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9]/80 hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                                 >
                                     <div className="flex items-center w-full text-start">
                                         <GraduationCap className="w-4 h-4 mr-2" />
@@ -188,7 +188,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                             element?.scrollIntoView({ behavior: 'smooth' });
                             setIsOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-lg hover:text-muted-foreground font-normal transition transform rounded-md cursor-pointer text-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                        className="w-full px-4 py-2 text-lg font-medium transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9] hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                     >
                         <div className="flex items-center w-full text-start">
                             <Gem className="w-4 h-4 mr-2" />
@@ -201,7 +201,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                             element?.scrollIntoView({ behavior: 'smooth' });
                             setIsOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-lg hover:text-muted-foreground font-normal transition transform rounded-md cursor-pointer text-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                        className="w-full px-4 py-2 text-lg font-medium transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9] hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                     >
                         <div className="flex items-center w-full text-start">
                             <Waypoints className="w-4 h-4 mr-2" />
@@ -214,7 +214,7 @@ const MobileMenu = ({ isOpen, setIsOpen }: Props) => {
                             element?.scrollIntoView({ behavior: 'smooth' });
                             setIsOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-lg hover:text-muted-foreground font-normal transition transform rounded-md cursor-pointer text-foreground text-start active:scale-95 hover:bg-muted/20 active:opacity-80"
+                        className="w-full px-4 py-2 text-lg font-medium transition-all duration-300 transform rounded-md cursor-pointer text-[#6d28d9] hover:text-[#4c1d95] text-start active:scale-95 hover:bg-primary/10 hover:translate-x-1 active:opacity-80"
                     >
                         <div className="flex items-center w-full text-start">
                             <Newspaper className="w-4 h-4 mr-2" />

@@ -22,13 +22,13 @@ const Menu = () => {
                         onClick={() => {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="h-10 px-4 py-2 text-sm font-normal rounded-md text-muted-foreground hover:text-foreground w-max hover:bg-none cursor-pointer"
+                        className="h-10 px-4 py-2 text-sm font-medium rounded-md text-[#6d28d9] hover:text-[#4c1d95] hover:bg-primary/10 w-max cursor-pointer transition-all duration-300 ease-out hover:-translate-y-0.5"
                     >
                         Home
                     </button>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground">
+                    <NavigationMenuTrigger className="text-[#6d28d9] hover:text-[#4c1d95] font-medium bg-transparent hover:bg-primary/10 transition-all duration-300 ease-out data-[state=open]:bg-primary/10 data-[state=open]:text-[#4c1d95]">
                         Test
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
@@ -54,7 +54,7 @@ const Menu = () => {
                             const element = document.getElementById('psychometric-test');
                             element?.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className="h-10 px-4 py-2 text-sm font-normal rounded-md text-muted-foreground hover:text-foreground w-max hover:bg-none cursor-pointer"
+                        className="h-10 px-4 py-2 text-sm font-medium rounded-md text-[#6d28d9] hover:text-[#4c1d95] hover:bg-primary/10 w-max cursor-pointer transition-all duration-300 ease-out hover:-translate-y-0.5"
                     >
                         Services
                     </button>
@@ -65,7 +65,7 @@ const Menu = () => {
                             const element = document.getElementById('perks');
                             element?.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className="h-10 px-4 py-2 text-sm font-normal rounded-md text-muted-foreground hover:text-foreground w-max hover:bg-none cursor-pointer"
+                        className="h-10 px-4 py-2 text-sm font-medium rounded-md text-[#6d28d9] hover:text-[#4c1d95] hover:bg-primary/10 w-max cursor-pointer transition-all duration-300 ease-out hover:-translate-y-0.5"
                     >
                         Perks
                     </button>
@@ -76,7 +76,7 @@ const Menu = () => {
                             const element = document.getElementById('testimonials');
                             element?.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className="h-10 px-4 py-2 text-sm font-normal rounded-md text-muted-foreground hover:text-foreground w-max hover:bg-none cursor-pointer"
+                        className="h-10 px-4 py-2 text-sm font-medium rounded-md text-[#6d28d9] hover:text-[#4c1d95] hover:bg-primary/10 w-max cursor-pointer transition-all duration-300 ease-out hover:-translate-y-0.5"
                     >
                         Testimonials
                     </button>
