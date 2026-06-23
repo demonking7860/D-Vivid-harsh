@@ -21,8 +21,7 @@ const contactInfo = {
   phone: "+91 7575020920",
   ahmedabadOffices: [
     "B-3, 2nd Floor, Safal Profitaire, Corporate Rd, Prahlad Nagar, Ahmedabad, Gujarat 380015",
-    "401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350",
-    "501, 5th Floor, Rajdeep Dreams, Rambaug Kankariya Rd, beside IDBI Bank, Prankunj Society, Pushpkunj, Maninagar, Ahmedabad, Gujarat 380008"
+    "401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350"
   ],
   suratOffices: [
     "335 - 336, Rajhans Ornate, Near Jani Farsan, Parle Point, Surat",

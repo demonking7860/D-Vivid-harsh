@@ -93,14 +93,6 @@ const Footer = () => {
                                     >
                                         401, Omkar Plaza, Bhakti Circle, Raspan Cross Rd, New India Colony, Nikol, Ahmedabad, Gujarat 382350
                                     </a>
-                                    <a
-                                        href="https://www.google.com/maps/place/D+Vivid+Consultant+%7C+Study+Abroad+Consultant+%7C+Student+Visa+Consultant+%7C+Overseas+Consultancy+Maninagar+Ahmedabad/@23.0020052,72.5992021,15z/data=!4m6!3m5!1s0x395e8555d18bfad5:0xbaf30bccdd4eeaa0!8m2!3d23.0020052!4d72.5992021!16s%2Fg%2F11vc2ywcbv?hl=en-IN&entry=ttu&g_ep=EgoyMDI1MTAwNi4wIKXMDSoASAFQAw%3D%3D"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block hover:text-purple-400 transition-colors cursor-pointer"
-                                    >
-                                        501, 5th Floor, Rajdeep Dreams, Rambaug Kankariya Rd, beside IDBI Bank, Prankunj Society, Pushpkunj, Maninagar, Ahmedabad, Gujarat 380008
-                                    </a>
                                 </div>
                             </div>
 
