@@ -128,11 +128,11 @@
         const readinessLevel = determineReadinessLevel(studentData.overallScore);
         const preparationTimeline = timelineTemplates[readinessLevel];
         
-        // Check if API key is available
-        const apiKey = process.env.PERPLEXITY_API_KEY;
+        // Check if API key is available (OpenRouter, with legacy Perplexity fallback)
+        const apiKey = process.env.OPENROUTER_API_KEY || process.env.PERPLEXITY_API_KEY;
         if (!apiKey) {
-          console.error('❌ PERPLEXITY_API_KEY not found in environment variables');
-          throw new Error('PERPLEXITY_API_KEY not configured');
+          console.error('❌ OPENROUTER_API_KEY not found in environment variables');
+          throw new Error('OPENROUTER_API_KEY not configured');
         }
         
         // Prepare the prompts - Optimized for structured output
@@ -266,18 +266,23 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
 }
 <JSON_END>`;
 
-        console.log('🌐 Calling Perplexity API...');
+        console.log('🌐 Calling OpenRouter API...');
           const openai = new OpenAI({
             apiKey: apiKey,
-            baseURL: "https://api.perplexity.ai",
+            baseURL: "https://openrouter.ai/api/v1",
           timeout: 27000,
             maxRetries: 2,
+            defaultHeaders: {
+              // Optional OpenRouter attribution headers (used for leaderboards/analytics)
+              "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_DOMAIN || "",
+              "X-Title": process.env.NEXT_PUBLIC_APP_NAME || "D-Vivid Consultancy",
+            },
           });
 
         let completion: any;
         try {
               const modelPromise = openai.chat.completions.create({
-            model: "sonar",
+            model: "perplexity/sonar",
                 messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
@@ -291,10 +296,10 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
               );
               
               completion = await Promise.race([modelPromise, timeoutPromise]);
-          console.log('✅ Perplexity API success');
+          console.log('✅ OpenRouter API success');
         } catch (error: any) {
-          console.error('❌ Perplexity API failed:', error.message);
-          throw new Error(`Perplexity API failed: ${error.message}`);
+          console.error('❌ OpenRouter API failed:', error.message);
+          throw new Error(`OpenRouter API failed: ${error.message}`);
         }
 
         const generatedText = completion.choices[0]?.message?.content || '';
