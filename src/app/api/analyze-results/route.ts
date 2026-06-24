@@ -1,9 +1,6 @@
     import { NextRequest, NextResponse } from 'next/server'
     import OpenAI from 'openai'
 
-    export const runtime = 'nodejs'
-    export const dynamic = 'force-dynamic'
-
     interface StudentData {
       userName: string
       userEmail?: string
@@ -131,16 +128,12 @@
         const readinessLevel = determineReadinessLevel(studentData.overallScore);
         const preparationTimeline = timelineTemplates[readinessLevel];
         
-        // Bracket notation avoids Next.js build-time inlining of an empty value from next.config env block.
-        // Prefer OPENROUTER_API_KEY; fall back to PERPLEXITY_API_KEY only if it holds an OpenRouter key (sk-or-).
-        const openRouterKey = (process.env['OPENROUTER_API_KEY'] || '').trim();
-        const perplexityKey = (process.env['PERPLEXITY_API_KEY'] || '').trim();
-        const apiKey = openRouterKey || (perplexityKey.startsWith('sk-or-') ? perplexityKey : '');
+        // Check if API key is available
+        const apiKey = process.env.PERPLEXITY_API_KEY;
         if (!apiKey) {
-          console.error('❌ No OpenRouter API key found (set OPENROUTER_API_KEY or sk-or-... key in PERPLEXITY_API_KEY)');
-          throw new Error('OPENROUTER_API_KEY not configured');
+          console.error('❌ PERPLEXITY_API_KEY not found in environment variables');
+          throw new Error('PERPLEXITY_API_KEY not configured');
         }
-        console.log('🔑 OpenRouter key present, length:', apiKey.length, 'prefix:', apiKey.slice(0, 12), 'source:', openRouterKey ? 'OPENROUTER_API_KEY' : 'PERPLEXITY_API_KEY');
         
         // Prepare the prompts - Optimized for structured output
         const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.
@@ -273,23 +266,18 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
 }
 <JSON_END>`;
 
-        console.log('🌐 Calling OpenRouter API...');
+        console.log('🌐 Calling Perplexity API...');
           const openai = new OpenAI({
             apiKey: apiKey,
-            baseURL: "https://openrouter.ai/api/v1",
+            baseURL: "https://api.perplexity.ai",
           timeout: 27000,
             maxRetries: 2,
-            defaultHeaders: {
-              // Optional OpenRouter attribution headers (used for leaderboards/analytics)
-              "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_DOMAIN || "",
-              "X-Title": process.env.NEXT_PUBLIC_APP_NAME || "D-Vivid Consultancy",
-            },
           });
 
         let completion: any;
         try {
               const modelPromise = openai.chat.completions.create({
-            model: "perplexity/sonar",
+            model: "sonar",
                 messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
@@ -303,10 +291,10 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
               );
               
               completion = await Promise.race([modelPromise, timeoutPromise]);
-          console.log('✅ OpenRouter API success');
+          console.log('✅ Perplexity API success');
         } catch (error: any) {
-          console.error('❌ OpenRouter API failed:', error.message);
-          throw new Error(`OpenRouter API failed: ${error.message}`);
+          console.error('❌ Perplexity API failed:', error.message);
+          throw new Error(`Perplexity API failed: ${error.message}`);
         }
 
         const generatedText = completion.choices[0]?.message?.content || '';
