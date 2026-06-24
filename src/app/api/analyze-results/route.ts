@@ -1,6 +1,9 @@
     import { NextRequest, NextResponse } from 'next/server'
     import OpenAI from 'openai'
 
+    export const runtime = 'nodejs'
+    export const dynamic = 'force-dynamic'
+
     interface StudentData {
       userName: string
       userEmail?: string
@@ -128,12 +131,13 @@
         const readinessLevel = determineReadinessLevel(studentData.overallScore);
         const preparationTimeline = timelineTemplates[readinessLevel];
         
-        // Read API key from environment (OpenRouter). Trim to avoid stray whitespace/newlines.
-        const apiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+        // Bracket notation avoids Next.js build-time inlining of an empty value from next.config env block.
+        const apiKey = (process.env['OPENROUTER_API_KEY'] || '').trim();
         if (!apiKey) {
           console.error('❌ OPENROUTER_API_KEY not found in environment variables');
           throw new Error('OPENROUTER_API_KEY not configured');
         }
+        console.log('🔑 OPENROUTER_API_KEY present, length:', apiKey.length, 'prefix:', apiKey.slice(0, 12));
         
         // Prepare the prompts - Optimized for structured output
         const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.
