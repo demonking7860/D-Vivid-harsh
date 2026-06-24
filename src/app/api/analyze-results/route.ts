@@ -132,12 +132,15 @@
         const preparationTimeline = timelineTemplates[readinessLevel];
         
         // Bracket notation avoids Next.js build-time inlining of an empty value from next.config env block.
-        const apiKey = (process.env['OPENROUTER_API_KEY'] || '').trim();
+        // Prefer OPENROUTER_API_KEY; fall back to PERPLEXITY_API_KEY only if it holds an OpenRouter key (sk-or-).
+        const openRouterKey = (process.env['OPENROUTER_API_KEY'] || '').trim();
+        const perplexityKey = (process.env['PERPLEXITY_API_KEY'] || '').trim();
+        const apiKey = openRouterKey || (perplexityKey.startsWith('sk-or-') ? perplexityKey : '');
         if (!apiKey) {
-          console.error('❌ OPENROUTER_API_KEY not found in environment variables');
+          console.error('❌ No OpenRouter API key found (set OPENROUTER_API_KEY or sk-or-... key in PERPLEXITY_API_KEY)');
           throw new Error('OPENROUTER_API_KEY not configured');
         }
-        console.log('🔑 OPENROUTER_API_KEY present, length:', apiKey.length, 'prefix:', apiKey.slice(0, 12));
+        console.log('🔑 OpenRouter key present, length:', apiKey.length, 'prefix:', apiKey.slice(0, 12), 'source:', openRouterKey ? 'OPENROUTER_API_KEY' : 'PERPLEXITY_API_KEY');
         
         // Prepare the prompts - Optimized for structured output
         const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.

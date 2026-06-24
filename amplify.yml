@@ -15,12 +15,13 @@ frontend:
         # (required for Next.js SSR/API routes on Amplify compute — see AWS SSR env docs)
         - echo "Build env var names present (values hidden):"
         - env | cut -d= -f1 | grep -E '^(OPENROUTER|PERPLEXITY|S3|CLERK|GOOGLE|NEXT_PUBLIC|APP_)' | sort || echo "(none matched — check Amplify Console > Hosting > Environment variables)"
+        # If OPENROUTER_API_KEY missing but PERPLEXITY_API_KEY holds an OpenRouter key, use it
+        - if [ -z "$OPENROUTER_API_KEY" ] && echo "$PERPLEXITY_API_KEY" | grep -q '^sk-or-'; then export OPENROUTER_API_KEY="$PERPLEXITY_API_KEY"; echo "Using OpenRouter key from PERPLEXITY_API_KEY"; fi
         - echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> .env.production
         - env | grep -e PERPLEXITY_API_KEY -e CLERK_SECRET_KEY -e GOOGLE_SERVICE_ACCOUNT_KEY -e GOOGLE_SHEET_ID -e S3_BUCKET >> .env.production
         - env | grep -e NEXT_PUBLIC_ >> .env.production
         - echo "AWS_REGION=$APP_REGION" >> .env.production
-        - grep -q '^OPENROUTER_API_KEY=.\+' .env.production || (echo "FATAL OPENROUTER_API_KEY is empty. In Amplify Console go to Hosting > Environment variables, add OPENROUTER_API_KEY for branch main (or All branches), paste the full sk-or-v1-... key, Save, then Redeploy." && exit 1)
-        - echo "OPENROUTER_API_KEY length in .env.production:" $(grep '^OPENROUTER_API_KEY=' .env.production | cut -d= -f2 | wc -c)
+        - if [ -n "$OPENROUTER_API_KEY" ]; then echo "OPENROUTER_API_KEY length:" ${#OPENROUTER_API_KEY}; elif echo "$PERPLEXITY_API_KEY" | grep -q '^sk-or-'; then echo "OPENROUTER_API_KEY empty but PERPLEXITY_API_KEY has sk-or- key, length:" ${#PERPLEXITY_API_KEY}; else echo "FATAL No OpenRouter key. Add OPENROUTER_API_KEY in Amplify Console > Hosting > Environment variables, OR replace PERPLEXITY_API_KEY value with your sk-or-v1-... OpenRouter key." && exit 1; fi
         - NODE_ENV=production pnpm run build
 
   artifacts:
