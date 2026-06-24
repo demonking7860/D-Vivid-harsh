@@ -128,14 +128,11 @@
         const readinessLevel = determineReadinessLevel(studentData.overallScore);
         const preparationTimeline = timelineTemplates[readinessLevel];
         
-        // Check if API key is available (OpenRouter). Trim to avoid stray whitespace/newlines.
+        // Read API key from environment (OpenRouter). Trim to avoid stray whitespace/newlines.
         const apiKey = (process.env.OPENROUTER_API_KEY || '').trim();
         if (!apiKey) {
           console.error('❌ OPENROUTER_API_KEY not found in environment variables');
           throw new Error('OPENROUTER_API_KEY not configured');
-        }
-        if (!apiKey.startsWith('sk-or-')) {
-          console.warn('⚠️ OPENROUTER_API_KEY does not look like an OpenRouter key (expected "sk-or-..."). Got prefix:', apiKey.slice(0, 6));
         }
         
         // Prepare the prompts - Optimized for structured output
