@@ -17,8 +17,8 @@ frontend:
         - env | grep -e OPENROUTER_API_KEY -e CLERK_SECRET_KEY -e GOOGLE_SERVICE_ACCOUNT_KEY -e GOOGLE_SHEET_ID -e S3_BUCKET >> .env.production
         - env | grep -e NEXT_PUBLIC_ >> .env.production
         - echo "AWS_REGION=$APP_REGION" >> .env.production
-        - test -n "$OPENROUTER_API_KEY" || (echo "FATAL: OPENROUTER_API_KEY is empty. Add it in Amplify Console > Hosting > Environment variables (full sk-or-v1-... key) for branch main or All branches, then redeploy." && exit 1)
-        - echo "OPENROUTER_API_KEY length:" ${#OPENROUTER_API_KEY}
+        - 'test -n "$OPENROUTER_API_KEY" || (echo "FATAL OPENROUTER_API_KEY is empty - set it in Amplify Console Hosting Environment variables (full sk-or-v1 key) for branch main or All branches, then redeploy" && exit 1)'
+        - 'echo "OPENROUTER_API_KEY length" ${#OPENROUTER_API_KEY}'
         - NODE_ENV=production pnpm run build
 
   artifacts:
