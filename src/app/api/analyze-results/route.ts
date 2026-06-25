@@ -1,5 +1,8 @@
     import { NextRequest, NextResponse } from 'next/server'
-    import OpenAI from 'openai'
+    import { OpenRouter } from '@openrouter/sdk'
+
+    export const runtime = 'nodejs'
+    export const dynamic = 'force-dynamic'
 
     interface StudentData {
       userName: string
@@ -128,12 +131,17 @@
         const readinessLevel = determineReadinessLevel(studentData.overallScore);
         const preparationTimeline = timelineTemplates[readinessLevel];
         
-        // Check if API key is available
-        const apiKey = process.env.PERPLEXITY_API_KEY;
+        // Read API key from environment (OpenRouter). Bracket notation + trim avoids
+        // build-time inlining of an empty value and stray whitespace/newlines.
+        const apiKey = (process.env['OPENROUTER_API_KEY'] || '').trim();
         if (!apiKey) {
-          console.error('❌ PERPLEXITY_API_KEY not found in environment variables');
-          throw new Error('PERPLEXITY_API_KEY not configured');
+          console.error('❌ OPENROUTER_API_KEY not found in environment variables');
+          throw new Error('OPENROUTER_API_KEY not configured');
         }
+        if (!apiKey.startsWith('sk-or-')) {
+          console.warn('⚠️ OPENROUTER_API_KEY has unexpected prefix:', apiKey.slice(0, 8));
+        }
+        console.log('🔑 OpenRouter key present, length:', apiKey.length, 'prefix:', apiKey.slice(0, 12));
         
         // Prepare the prompts - Optimized for structured output
         const systemPrompt = `You are an expert study-abroad readiness evaluator for Indian students.
@@ -266,24 +274,28 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
 }
 <JSON_END>`;
 
-        console.log('🌐 Calling Perplexity API...');
-          const openai = new OpenAI({
+        console.log('🌐 Calling OpenRouter API...');
+          const openrouter = new OpenRouter({
             apiKey: apiKey,
-            baseURL: "https://api.perplexity.ai",
-          timeout: 27000,
-            maxRetries: 2,
+            timeoutMs: 27000,
+            // Optional attribution shown on the OpenRouter dashboard/leaderboards
+            httpReferer: process.env['NEXT_PUBLIC_APP_URL'] || process.env['NEXT_PUBLIC_APP_DOMAIN'] || undefined,
+            appTitle: process.env['NEXT_PUBLIC_APP_NAME'] || 'D-Vivid Consultancy',
           });
 
         let completion: any;
         try {
-              const modelPromise = openai.chat.completions.create({
-            model: "sonar",
-                messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-                ],
-            temperature: 0.2,  // Lower for more consistent JSON
-            max_tokens: 2700   // Reduced since prompts are shorter
+              const modelPromise = openrouter.chat.send({
+            chatRequest: {
+              model: "perplexity/sonar",
+                  messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt }
+                  ],
+              temperature: 0.2,  // Lower for more consistent JSON
+              maxTokens: 2700,   // Reduced since prompts are shorter
+              stream: false,
+            }
               });
               
               const timeoutPromise = new Promise((_, reject) => 
@@ -291,10 +303,13 @@ IMPORTANT: Strengths, Gaps, Recommendations, and country reasoning MUST be array
               );
               
               completion = await Promise.race([modelPromise, timeoutPromise]);
-          console.log('✅ Perplexity API success');
+          console.log('✅ OpenRouter API success');
+          if (completion?.usage) {
+            console.log('📊 Token usage:', JSON.stringify(completion.usage));
+          }
         } catch (error: any) {
-          console.error('❌ Perplexity API failed:', error.message);
-          throw new Error(`Perplexity API failed: ${error.message}`);
+          console.error('❌ OpenRouter API failed:', error.message);
+          throw new Error(`OpenRouter API failed: ${error.message}`);
         }
 
         const generatedText = completion.choices[0]?.message?.content || '';

@@ -8,7 +8,7 @@ The platform operates as a modern web application where students complete a mult
 
 **Key Features:**
 *   **Interactive Assessment:** A user-friendly interface for collecting student data and psychometric responses.
-*   **AI-Powered Analysis:** Utilizes Perplexity AI (Sonar models) to generate deep insights, identifying strengths, gaps, and country fit.
+*   **AI-Powered Analysis:** Utilizes OpenRouter (model `perplexity/sonar`) to generate deep insights, identifying strengths, gaps, and country fit.
 *   **Automated PDF Generation:** Dynamically creates professional-grade PDF reports with charts and personalized recommendations.
 *   **Cloud Storage & Management:** Automatically stores reports in AWS S3 and logs student data in Google Sheets for admin management.
 *   **Seamless Delivery:** Provides instant access to reports for students and consultants.
@@ -26,7 +26,7 @@ The platform operates as a modern web application where students complete a mult
 
 ### Backend
 *   **Runtime:** Node.js (via Next.js API Routes)
-*   **AI Engine:** Perplexity API (Sonar Pro/Sonar models) via OpenAI SDK compatibility
+*   **AI Engine:** OpenRouter (model `perplexity/sonar`) via the official `@openrouter/sdk` client
 *   **PDF Engine:** Puppeteer (Local), Puppeteer Core + @sparticuz/chromium (Serverless/Vercel)
 *   **Storage:** AWS S3 (Report storage)
 *   **Database/CMS:** Google Sheets API (Data logging and lead management)
@@ -49,18 +49,18 @@ The system follows a serverless architecture pattern. The client (Next.js) handl
     *   **Results View:** Displays a summary of the analysis to the user.
 
 2.  **API Layer (`src/app/api`):**
-    *   `/analyze-results`: Receives raw assessment data, constructs prompts, and queries Perplexity AI to interpret the results.
+    *   `/analyze-results`: Receives raw assessment data, constructs prompts, and queries OpenRouter (`perplexity/sonar`) to interpret the results.
     *   `/generate-pdf`: Receives the analyzed data, renders an HTML template, converts it to PDF using Puppeteer, uploads to S3, and updates Google Sheets.
 
 3.  **Service Layer:**
-    *   **Perplexity AI:** Acts as the reasoning engine to determine "Readiness Level" and "Country Fit".
+    *   **OpenRouter (`perplexity/sonar`):** Acts as the reasoning engine to determine "Readiness Level" and "Country Fit".
     *   **Google Sheets:** Acts as the primary database for lead tracking and report URLs.
     *   **AWS S3:** Durable object storage for generated PDF files.
 
 ### Data Flow
 1.  **User Input:** Student completes the assessment on the frontend.
 2.  **Submission:** Data is sent to `/api/analyze-results`.
-3.  **Analysis:** Backend sends prompts to Perplexity API -> Returns JSON analysis (Scores, Strengths, Gaps, Recommendations).
+3.  **Analysis:** Backend sends prompts to OpenRouter (`perplexity/sonar`) -> Returns JSON analysis (Scores, Strengths, Gaps, Recommendations).
 4.  **Generation:** Frontend (or chained backend call) sends analysis to `/api/generate-pdf`.
 5.  **Rendering:** Backend generates HTML with dynamic charts (Radar, Circular Progress).
 6.  **PDF Creation:** Puppeteer renders HTML to PDF buffer.
@@ -87,7 +87,7 @@ graph TD
     CDN -->|Next.js App| Server[Serverless Functions]
     
     subgraph Backend Services
-        Server -->|Analyze| AI[Perplexity API]
+        Server -->|Analyze| AI[OpenRouter perplexity/sonar]
         Server -->|Store PDF| S3[AWS S3 Bucket]
         Server -->|Log Data| Sheets[Google Sheets]
     end
@@ -123,7 +123,7 @@ graph TD
     *   **Input:** Raw quiz answers.
     *   **Logic:**
         *   Calculates raw scores per category.
-        *   Constructs a complex prompt for Perplexity AI.
+        *   Constructs a complex prompt for OpenRouter (`perplexity/sonar`).
         *   Enforces JSON output format from the AI.
     *   **Output:** Structured JSON with qualitative and quantitative insights.
 
@@ -180,8 +180,8 @@ The system uses a flat-file structure in Google Sheets.
     *   *Cause:* Service Account permissions revoked or Sheet ID changed.
     *   *Fix:* Re-share sheet with service account email.
 3.  **AI API Failure:**
-    *   *Cause:* Perplexity API key expired or out of credits.
-    *   *Fix:* Rotate `PERPLEXITY_API_KEY` in environment variables.
+    *   *Cause:* OpenRouter API key expired or out of credits.
+    *   *Fix:* Rotate `OPENROUTER_API_KEY` in environment variables.
 
 ## Infrastructure Details
 *   **Region:** `ap-south-1` (AWS Mumbai) preferred for S3.
@@ -202,7 +202,7 @@ The system uses a flat-file structure in Google Sheets.
     ```env
     GOOGLE_SERVICE_ACCOUNT_KEY={...}
     GOOGLE_SHEET_ID=...
-    PERPLEXITY_API_KEY=...
+    OPENROUTER_API_KEY=...
     S3_BUCKET=...
     APP_REGION=...
     AWS_ACCESS_KEY_ID=... (for local S3 upload)

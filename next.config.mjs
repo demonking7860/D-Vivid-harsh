@@ -88,14 +88,14 @@ const nextConfig = {
     generateEtags: false,
     compress: true,
     
-    // Ensure environment variables are available
+    // Only expose NEXT_PUBLIC_* here. Server secrets (OPENROUTER_API_KEY, CLERK_SECRET_KEY, etc.)
+    // must NOT be listed — the env block inlines values at config-eval time, often before
+    // Amplify writes .env.production, which bakes empty strings into API route bundles.
     env: {
         NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
         NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN,
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-        PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY, 
     },
     
     // Better error handling for production
